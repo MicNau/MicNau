@@ -1,0 +1,2142 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Конфигуратор дома</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root { --bg:#fff; --card:#d9d9d9; --text:#000; --r:12px; }
+body { font-family:'Roboto',sans-serif; background:#e0e0e0; display:flex; justify-content:center; min-height:100vh; }
+.app { width:100%; max-width:480px; background:var(--bg); min-height:100vh; display:flex; flex-direction:column; }
+
+/* ПРОГРЕСС */
+.prog-wrap { padding:14px 36px 0; flex-shrink:0; }
+.prog-lbl { font-size:12px; color:#999; text-align:right; margin-bottom:4px; }
+.prog-bar { height:3px; background:#e0e0e0; border-radius:2px; overflow:hidden; }
+.prog-fill { height:100%; background:#000; border-radius:2px; transition:width .4s; }
+
+/* ЭКРАНЫ */
+.screen { display:none; flex-direction:column; flex:1; }
+.screen.active { display:flex; animation:sIn .2s ease; }
+@keyframes sIn { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:none} }
+.sh { padding:18px 36px 12px; flex-shrink:0; }
+.st { font-size:28px; font-weight:700; line-height:1.2; }
+.ss { font-size:16px; font-weight:300; color:#666; margin-top:3px; }
+.sb { flex:1; padding:0 36px 12px; overflow-y:auto; }
+
+/* НАВИГАЦИЯ */
+.nav-row { display:flex; gap:10px; margin:0 36px 24px; flex-shrink:0; }
+.btn-back { width:60px; height:60px; flex-shrink:0; background:var(--card); border:none;
+  border-radius:var(--r); font-size:22px; cursor:pointer; display:flex; align-items:center;
+  justify-content:center; transition:background .15s, transform .1s; }
+.btn-back:active { background:#bbb; transform:scale(.97); }
+.btn-next { flex:1; height:60px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 20px; background:var(--card); border:none; border-radius:var(--r);
+  font-size:22px; font-weight:700; letter-spacing:.04em; color:var(--text);
+  cursor:pointer; transition:background .15s, transform .1s; }
+.btn-next:active { background:#bbb; transform:scale(.98); }
+.btn-full { display:flex; align-items:center; justify-content:space-between;
+  margin:0 36px 24px; padding:0 20px; height:60px; background:var(--card); border:none;
+  border-radius:var(--r); font-size:22px; font-weight:700; letter-spacing:.04em; color:var(--text);
+  cursor:pointer; flex-shrink:0; transition:background .15s, transform .1s; }
+.btn-full:active { background:#bbb; transform:scale(.98); }
+.btn-icon { width:60px; height:60px; flex-shrink:0; background:var(--card); border:none;
+  border-radius:var(--r); font-size:24px; cursor:pointer; display:flex; align-items:center;
+  justify-content:center; transition:background .15s; }
+.btn-icon.on { background:#000; color:#fff; }
+
+/* ШАГ 1 */
+.house-cards { display:flex; flex-direction:column; gap:12px; }
+.house-card { position:relative; width:100%; height:130px; background:var(--card);
+  border-radius:var(--r); cursor:pointer; overflow:hidden;
+  border:3px solid transparent; transition:border-color .2s, transform .12s; }
+.house-card:active { transform:scale(.99); }
+.house-card.selected { border-color:#000; }
+.house-card.selected::after { content:'✓'; position:absolute; top:10px; right:12px;
+  width:26px; height:26px; background:#000; color:#fff; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; }
+.hcp { width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+  flex-direction:column; gap:5px; color:#999; font-size:13px; font-weight:300; text-align:center; padding:12px; }
+.hcp .ic { font-size:26px; opacity:.3; }
+.hcl { position:absolute; bottom:0; left:0; right:0; padding:7px 14px;
+  background:rgba(0,0,0,.5); color:#fff; font-size:14px; font-weight:500; }
+.upload-card { width:100%; height:72px; background:var(--card); border-radius:var(--r);
+  border:3px dashed #aaa; display:flex; align-items:center; justify-content:center;
+  gap:10px; cursor:pointer; transition:background .2s; }
+.upload-card:active { background:#bbb; }
+.upload-card span { font-size:14px; font-weight:300; color:#666; }
+#upload-input { display:none; }
+
+/* 3D СЛОТ (шаги 2-4 и 10) */
+.view3d-slot { width:100%; aspect-ratio:1; background:var(--card); border-radius:var(--r);
+  margin-bottom:16px; position:relative; overflow:hidden; }
+.p-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; gap:10px; }
+.p-lbl { font-size:16px; font-weight:300; flex:1; }
+.p-inp { width:74px; height:38px; background:var(--card); border:none; border-radius:8px;
+  text-align:center; font-size:18px; outline:none; flex-shrink:0; transition:background .15s; }
+.p-inp:focus { background:#c0c0c0; }
+
+/* ЧЕКЛИСТ */
+.checklist { display:flex; flex-direction:column; gap:9px; }
+.ci { display:flex; align-items:center; justify-content:space-between;
+  height:52px; padding:0 16px; background:var(--card);
+  border-radius:var(--r); cursor:pointer; border:3px solid transparent;
+  transition:border-color .2s; user-select:none; }
+.ci:active { background:#c8c8c8; }
+.ci.checked { border-color:#000; }
+.ci-text { font-size:16px; font-weight:700; letter-spacing:.02em; }
+.cb { width:22px; height:22px; border:3px solid #999; border-radius:5px;
+  flex-shrink:0; position:relative; transition:background .15s, border-color .15s; }
+.ci.checked .cb { background:#000; border-color:#000; }
+.ci.checked .cb::after { content:''; position:absolute; left:3px; top:6px;
+  width:9px; height:5px; border-left:2px solid #fff; border-bottom:2px solid #fff; transform:rotate(-45deg); }
+
+/* КАНВАС */
+.cv-hint { font-size:12px; color:#999; text-align:center; margin-bottom:6px; }
+.cv-wrap { position:relative; width:100%; aspect-ratio:1; background:var(--card);
+  border-radius:var(--r); margin-bottom:10px; overflow:hidden; touch-action:none; cursor:crosshair; }
+.cv-wrap canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+.cv-acts { display:flex; gap:10px; margin-bottom:10px; }
+.btn-u,.btn-c { flex:1; height:36px; background:var(--card); border:none; border-radius:8px;
+  font-size:13px; font-weight:600; cursor:pointer; transition:background .15s; }
+.btn-u:active,.btn-c:active { background:#bbb; }
+
+/* ТОГЛЫ */
+.tg { display:flex; align-items:center; justify-content:space-between;
+  height:50px; padding:0 16px; background:var(--card);
+  border-radius:var(--r); cursor:pointer; border:3px solid transparent;
+  transition:border-color .2s; user-select:none; margin-bottom:9px; }
+.tg.on { border-color:#000; }
+.tg-txt { font-size:16px; font-weight:700; }
+.tg-ind { width:40px; height:20px; background:#bbb; border-radius:10px; position:relative; transition:background .2s; }
+.tg.on .tg-ind { background:#000; }
+.tg-ind::after { content:''; position:absolute; top:2px; left:2px;
+  width:16px; height:16px; background:#fff; border-radius:50%; transition:transform .2s; }
+.tg.on .tg-ind::after { transform:translateX(20px); }
+
+/* ШАГ 10 */
+.sec-nav { display:flex; gap:7px; margin-bottom:10px; overflow-x:auto; padding-bottom:3px; }
+.sec-nav::-webkit-scrollbar { display:none; }
+.sec-tab { flex-shrink:0; padding:4px 12px; background:var(--card); border-radius:14px;
+  font-size:12px; font-weight:600; cursor:pointer; border:2px solid transparent;
+  white-space:nowrap; transition:background .15s, border-color .15s; }
+.sec-tab.active { border-color:#000; background:#f0f0f0; }
+.view3d { width:100%; aspect-ratio:1; background:var(--card); border-radius:var(--r);
+  display:flex; align-items:center; justify-content:center; margin-bottom:10px;
+  color:#999; font-size:16px; font-weight:300; position:relative; overflow:hidden; }
+.arr { position:absolute; top:50%; transform:translateY(-50%);
+  width:32px; height:32px; background:rgba(0,0,0,.18); border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-size:16px; cursor:pointer; border:none; }
+.arr.l{left:8px} .arr.r{right:8px}
+/* ОБРАЗЦЫ — сетка квадратиков */
+.sample-lbl { font-size:12px; color:#999; margin-bottom:8px; }
+.samples-grid { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+.swatch { width:72px; height:72px; background:var(--card); border-radius:10px;
+  border:2px solid #ccc; display:flex; align-items:center; justify-content:center;
+  flex-direction:column; gap:4px; cursor:default; position:relative; }
+.swatch-name { font-size:9px; font-weight:600; color:#555; text-align:center;
+  line-height:1.2; padding:0 4px; }
+.swatch-del { position:absolute; top:2px; right:3px; font-size:10px; color:#aaa;
+  cursor:pointer; line-height:1; background:none; border:none; padding:0; }
+.swatch-del:hover { color:#000; }
+.swatch-active { box-shadow:0 0 0 3px #fff, 0 0 0 5px #000; border-color:#000 !important; }
+.samples-empty { font-size:13px; color:#bbb; font-weight:300; }
+
+/* КАТАЛОГ — ФИЛЬТРЫ */
+.filter-section { margin-bottom:18px; }
+.filter-title { font-size:14px; font-weight:700; margin-bottom:10px; color:#333; letter-spacing:.03em; }
+.color-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:8px; margin-bottom:4px; }
+.color-dot { width:100%; aspect-ratio:1; border-radius:50%; cursor:pointer;
+  border:3px solid transparent; transition:border-color .15s, transform .12s;
+  box-shadow:0 1px 3px rgba(0,0,0,.2); }
+.color-dot:active { transform:scale(.9); }
+.color-dot.selected { border-color:#000; box-shadow:0 0 0 3px #fff, 0 0 0 5px #000; }
+.price-btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.price-btn { height:52px; background:var(--card); border:3px solid transparent;
+  border-radius:var(--r); font-size:14px; font-weight:700; cursor:pointer;
+  transition:border-color .2s, background .15s; line-height:1.3; padding:4px 8px; }
+.price-btn:active { background:#bbb; }
+.price-btn.selected { border-color:#000; background:#f0f0f0; }
+.filter-divider { height:1px; background:#e8e8e8; margin:16px 0; }
+
+/* КАТАЛОГ — РЕЗУЛЬТАТЫ */
+.cat-results { display:flex; flex-direction:column; gap:10px; }
+.mat-card { background:var(--card); border-radius:var(--r); margin-bottom:0;
+  overflow:hidden; border:3px solid transparent; transition:border-color .2s; }
+.mat-card.selected { border-color:#000; }
+.mat-head { display:flex; gap:10px; align-items:flex-start; padding:12px; cursor:pointer; }
+.mat-thumb { width:64px; height:64px; background:#bbb; border-radius:8px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:22px; }
+.mat-hi { flex:1; }
+.mat-name { font-size:14px; font-weight:700; margin-bottom:3px; }
+.mat-short { font-size:12px; font-weight:300; color:#666; line-height:1.4; }
+.mat-exp { width:28px; height:28px; background:#0001; border:none; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  font-size:14px; color:#555; transition:transform .25s; flex-shrink:0; margin-top:2px; }
+.mat-card.open .mat-exp { transform:rotate(180deg); }
+.mat-body { max-height:0; overflow:hidden; transition:max-height .3s; padding:0 12px; }
+.mat-card.open .mat-body { max-height:400px; }
+.mat-bi { padding-bottom:12px; border-top:1px solid rgba(0,0,0,.08); padding-top:10px; }
+.mat-det { font-size:13px; font-weight:300; color:#444; line-height:1.6; margin-bottom:10px; }
+.mat-acts { display:flex; gap:8px; }
+.btn-smp { width:100%; height:36px; background:#000; color:#fff; border:none; border-radius:8px;
+  font-size:13px; font-weight:700; cursor:pointer; }
+
+/* ИТОГ */
+.sum-row { display:flex; justify-content:space-between; padding:10px 0;
+  border-bottom:1px solid #eee; font-size:14px; }
+.sum-row:last-child { border-bottom:none; }
+.sum-k { font-weight:300; color:#666; }
+.sum-v { font-weight:700; text-align:right; max-width:60%; }
+
+/* Заглушка каталога */
+.cat-placeholder { text-align:center; padding:40px 20px; color:#aaa; }
+.cat-placeholder .cp-icon { font-size:48px; margin-bottom:12px; }
+.cat-placeholder .cp-text { font-size:15px; font-weight:300; line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="prog-wrap">
+    <div class="prog-lbl" id="plbl">Шаг 1 из 10</div>
+    <div class="prog-bar"><div class="prog-fill" id="pfill" style="width:10%"></div></div>
+  </div>
+
+  <!-- 1: Тип дома -->
+  <div class="screen active" id="screen-1">
+    <div class="sh"><div class="st">Выберите тип дома:</div></div>
+    <div class="sb">
+      <div class="house-cards">
+        <div class="house-card" onclick="selHouse(this,'Одноэтажный дом')">
+          <div class="hcp"><div class="ic">🏠</div>Картинка с домом, описание</div>
+          <div class="hcl">Одноэтажный дом</div>
+        </div>
+        <div class="house-card" onclick="selHouse(this,'Двухэтажный дом')">
+          <div class="hcp"><div class="ic">🏡</div>Картинка с домом, описание</div>
+          <div class="hcl">Двухэтажный дом</div>
+        </div>
+        <div class="house-card" onclick="selHouse(this,'Дом с мансардой')">
+          <div class="hcp"><div class="ic">🏘</div>Картинка с домом, описание</div>
+          <div class="hcl">Дом с мансардой</div>
+        </div>
+        <!-- НОВОЕ: Участок без дома -->
+        <div class="house-card" onclick="selHouse(this,'Участок без дома')">
+          <div class="hcp"><div class="ic">🌿</div>Пустой участок, без строений</div>
+          <div class="hcl">Участок без дома</div>
+        </div>
+        <label class="upload-card">
+          <input type="file" id="upload-input" accept="image/*">
+          <span>📷</span><span>Загрузите фото дома или участка</span>
+        </label>
+      </div>
+    </div>
+    <button class="btn-full" onclick="goTo(2)">ДАЛЬШЕ <span>→</span></button>
+  </div>
+
+  <!-- 2: Площадь -->
+  <div class="screen" id="screen-2">
+    <div class="sh"><div class="st">Задайте общую площадь дома:</div></div>
+    <div class="sb">
+      <div class="view3d-slot" id="slot-2"></div>
+      <div class="p-row"><div class="p-lbl">Общая площадь (кв.м):</div>
+        <input class="p-inp" type="number" id="v-area" value="120" min="20" max="1000" oninput="onParamChange()"></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn-back" onclick="goTo(1)">←</button>
+      <button class="btn-next" onclick="goTo(3)">ДАЛЬШЕ <span>→</span></button>
+    </div>
+  </div>
+
+  <!-- 3: Высота этажа -->
+  <div class="screen" id="screen-3">
+    <div class="sh"><div class="st">Задайте высоту этажа:</div></div>
+    <div class="sb">
+      <div class="view3d-slot" id="slot-3"></div>
+      <div class="p-row"><div class="p-lbl">Высота этажа (см):</div>
+        <input class="p-inp" type="number" id="v-floor" value="400" min="240" max="600" oninput="onParamChange()"></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn-back" onclick="goTo(2)">←</button>
+      <button class="btn-next" onclick="goTo(4)">ДАЛЬШЕ <span>→</span></button>
+    </div>
+  </div>
+
+  <!-- 4: Фундамент -->
+  <div class="screen" id="screen-4">
+    <div class="sh"><div class="st">Задайте высоту фундамента:</div></div>
+    <div class="sb">
+      <div class="view3d-slot" id="slot-4"></div>
+      <div class="p-row"><div class="p-lbl">Фундамент (см):</div>
+        <input class="p-inp" type="number" id="v-found" value="80" min="0" max="300" oninput="onParamChange()"></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn-back" onclick="goTo(3)">←</button>
+      <button class="btn-next" onclick="goTo(5)">ДАЛЬШЕ <span>→</span></button>
+    </div>
+  </div>
+
+  <!-- 5: Что планируете -->
+  <div class="screen" id="screen-5">
+    <div class="sh">
+      <div class="st">Что планируете строить или улучшать:</div>
+      <div class="ss">(выберите одну или несколько позиций)</div>
+    </div>
+    <div class="sb">
+      <div class="checklist">
+        <div class="ci" onclick="tci(this)" data-id="terrace"><span class="ci-text">Терраса</span><div class="cb"></div></div>
+        <!-- НОВЫЕ пункты -->
+        <div class="ci" onclick="tci(this)" data-id="pool_terrace"><span class="ci-text">Терраса у бассейна</span><div class="cb"></div></div>
+        <div class="ci" onclick="tci(this)" data-id="paths"><span class="ci-text">Дорожки</span><div class="cb"></div></div>
+        <div class="ci" onclick="tci(this)" data-id="pier"><span class="ci-text">Причал</span><div class="cb"></div></div>
+        <div class="ci" onclick="tci(this)" data-id="porch"><span class="ci-text">Крыльцо</span><div class="cb"></div></div>
+        <div class="ci" onclick="tci(this)" data-id="railing"><span class="ci-text">Ограждение террасы</span><div class="cb"></div></div>
+        <div class="ci" onclick="tci(this)" data-id="fence"><span class="ci-text">Забор вокруг участка</span><div class="cb"></div></div>
+        <div class="ci" onclick="tci(this)" data-id="facade"><span class="ci-text">Отделка фасада</span><div class="cb"></div></div>
+        <div class="ci" onclick="tci(this)" data-id="beds"><span class="ci-text">Грядки</span><div class="cb"></div></div>
+        <div class="ci" onclick="tci(this)" data-id="furniture"><span class="ci-text">Садовая мебель</span><div class="cb"></div></div>
+      </div>
+    </div>
+    <div class="nav-row">
+      <button class="btn-back" onclick="goTo(4)">←</button>
+      <button class="btn-next" onclick="goToConditional()">ДАЛЬШЕ <span>→</span></button>
+    </div>
+  </div>
+
+  <!-- 6: Терраса — точки -->
+  <div class="screen" id="screen-6">
+    <div class="sh"><div class="st" id="s6-title">Поставьте точки в углах террасы:</div></div>
+    <div class="sb">
+      <p class="cv-hint">Точки прилипают к сетке. Щипок — масштаб, тяните — перемещение</p>
+      <div class="cv-wrap" id="cw-terrace"><canvas id="cv-terrace"></canvas></div>
+      <div class="cv-acts">
+        <button class="btn-u" onclick="undoPt('terrace')">↩ Отменить</button>
+        <button class="btn-c" onclick="clrPts('terrace')">✕ Очистить</button>
+      </div>
+      <div class="tg" onclick="ttg(this)"><span class="tg-txt">Нужно ограждение</span><div class="tg-ind"></div></div>
+      <div class="tg" onclick="ttg(this)"><span class="tg-txt">Нужен навес</span><div class="tg-ind"></div></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn-back" onclick="goTo(5)">←</button>
+      <button class="btn-next" onclick="goToAfter6()">ДАЛЬШЕ <span>→</span></button>
+    </div>
+  </div>
+
+  <!-- 6b: Терраса у бассейна — точки -->
+  <div class="screen" id="screen-6b">
+    <div class="sh"><div class="st">Поставьте точки террасы у бассейна:</div></div>
+    <div class="sb">
+      <p class="cv-hint">Нажмите на план чтобы отметить углы</p>
+      <div class="cv-wrap" id="cw-pool_terrace"><canvas id="cv-pool_terrace"></canvas></div>
+      <div class="cv-acts">
+        <button class="btn-u" onclick="undoPt('pool_terrace')">↩ Отменить</button>
+        <button class="btn-c" onclick="clrPts('pool_terrace')">✕ Очистить</button>
+      </div>
+      <div class="tg" onclick="ttg(this)"><span class="tg-txt">Нужно ограждение бассейна</span><div class="tg-ind"></div></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn-back" onclick="goToPrev('pool_terrace')">←</button>
+      <button class="btn-next" onclick="goToAfter('pool_terrace')">ДАЛЬШЕ <span>→</span></button>
+    </div>
+  </div>
+
+  <!-- 6c: Дорожки — точки -->
+  <div class="screen" id="screen-6c">
+    <div class="sh"><div class="st">Обозначьте дорожки на плане:</div></div>
+    <div class="sb">
+      <p class="cv-hint">Нажимайте точки последовательно вдоль дорожки</p>
+      <div class="cv-wrap" id="cw-paths"><canvas id="cv-paths"></canvas></div>
+      <div class="cv-acts">
+        <button class="btn-u" onclick="undoPt('paths')">↩ Отменить</button>
+        <button class="btn-c" onclick="clrPts('paths')">✕ Очистить</button>
+      </div>
+      <div class="p-row" style="margin-top:4px;">
+        <div class="p-lbl">Ширина дорожки (см):</div>
+        <input class="p-inp" type="number" id="v-paths-width" value="120" min="60" max="300">
+      </div>
+    </div>
+    <div class="nav-row">
+      <button class="btn-back" onclick="goToPrev('paths')">←</button>
+      <button class="btn-next" onclick="goToAfter('paths')">ДАЛЬШЕ <span>→</span></button>
+    </div>
+  </div>
+
+  <!-- 6d: Причал — точки -->
+  <div class="screen" id="screen-6d">
+    <div class="sh"><div class="st">Поставьте точки в углах причала:</div></div>
+    <div class="sb">
+      <p class="cv-hint">Нажмите на план участка чтобы отметить форму причала</p>
+      <div class="cv-wrap" id="cw-pier"><canvas id="cv-pier"></canvas></div>
+      <div class="cv-acts">
+        <button class="btn-u" onclick="undoPt('pier')">↩ Отменить</button>
+        <button class="btn-c" onclick="clrPts('pier')">✕ Очистить</button>
+      </div>
+      <div class="tg" onclick="ttg(this)"><span class="tg-txt">Нужны перила причала</span><div class="tg-ind"></div></div>
+      <div class="tg" onclick="ttg(this)"><span class="tg-txt">Нужна крыша / навес</span><div class="tg-ind"></div></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn-back" onclick="goToPrev('pier')">←</button>
+      <button class="btn-next" onclick="goToAfter('pier')">ДАЛЬШЕ <span>→</span></button>
+    </div>
+  </div>
+
+  <!-- 7: Крыльцо — drag+resize -->
+  <div class="screen" id="screen-7">
+    <div class="sh"><div class="st">Укажите место и размер крыльца</div></div>
+    <div class="sb">
+      <p class="cv-hint">Перетащите крыльцо, потяните за угол чтобы изменить размер</p>
+      <div class="cv-wrap" id="cw-porch" style="cursor:default;"><canvas id="cv-porch"></canvas></div>
+      <div class="tg" onclick="ttg(this)"><span class="tg-txt">Нужны перила</span><div class="tg-ind"></div></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn-back" onclick="goToPrev('porch')">←</button>
+      <button class="btn-next" onclick="goToAfter('porch')">ДАЛЬШЕ <span>→</span></button>
+    </div>
+  </div>
+
+  <!-- 8: Забор — точки -->
+  <div class="screen" id="screen-8">
+    <div class="sh"><div class="st">Поставьте точки в углах забора</div></div>
+    <div class="sb">
+      <p class="cv-hint">Точки прилипают к сетке (1 клетка = 1 м). Щипок — масштаб</p>
+      <div class="cv-wrap" id="cw-fence"><canvas id="cv-fence"></canvas></div>
+      <div class="cv-acts">
+        <button class="btn-u" onclick="undoPt('fence')">↩ Отменить</button>
+        <button class="btn-c" onclick="clrPts('fence')">✕ Очистить</button>
+      </div>
+    </div>
+    <div class="nav-row">
+      <button class="btn-back" onclick="goToPrev('fence')">←</button>
+      <button class="btn-next" onclick="goToAfter('fence')">ДАЛЬШЕ <span>→</span></button>
+    </div>
+  </div>
+
+  <!-- 10: Материалы -->
+  <div class="screen" id="screen-10">
+    <div class="sh">
+      <div class="st" id="sec-title">Терраса</div>
+      <div class="ss">(разделы можно листать)</div>
+    </div>
+    <div class="sb">
+      <div class="sec-nav" id="sec-nav"></div>
+      <div class="view3d-slot" id="three-container" style="cursor:grab; touch-action:none;">
+        <div id="three-hint" style="position:absolute;bottom:6px;left:0;right:0;text-align:center;
+             font-size:10px;color:rgba(255,255,255,0.6);pointer-events:none;letter-spacing:.03em;z-index:1;">
+          ☝️ вращение · щипок — зум
+        </div>
+      </div>
+      <div class="sample-lbl" id="sample-lbl">Образцы:</div>
+      <div class="samples-grid" id="samples-grid"></div>
+    </div>
+    <div class="nav-row">
+      <button class="btn-back" onclick="goBack10()">←</button>
+      <button class="btn-next" onclick="openCatalog()">КАТАЛОГ <span>›</span></button>
+      <button class="btn-icon" onclick="showSummary()">✓</button>
+    </div>
+  </div>
+
+  <!-- Каталог: ТОЛЬКО террасная доска с фильтрами -->
+  <div class="screen" id="screen-catalog">
+    <div class="sh"><div class="st" id="cat-title">Террасная доска</div></div>
+    <div class="sb" id="cat-body">
+      <!-- Рендерится динамически: либо фильтры, либо результаты -->
+    </div>
+    <div class="nav-row" id="cat-nav">
+      <button class="btn-back" id="cat-back-btn" onclick="goTo(10)">←</button>
+      <button class="btn-next" id="cat-action-btn" onclick="showCatalogResults()">ПОДОБРАТЬ <span>→</span></button>
+    </div>
+  </div>
+
+  <!-- Итог -->
+  <div class="screen" id="screen-summary">
+    <div class="sh"><div class="st">Ваш проект:</div></div>
+    <div class="sb"><div id="sum-body"></div></div>
+    <button class="btn-full" onclick="alert('Заявка отправлена! 🎉')">ОТПРАВИТЬ ЗАЯВКУ <span>→</span></button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+// ══════════════════════════════════════════════
+// ДАННЫЕ
+// ══════════════════════════════════════════════
+const SECS = [
+  {id:'terrace',      lbl:'Терраса',           req:'terrace'},
+  {id:'pool_terrace', lbl:'Терраса у бассейна', req:'pool_terrace'},
+  {id:'paths',        lbl:'Дорожки',            req:'paths'},
+  {id:'pier',         lbl:'Причал',             req:'pier'},
+  {id:'porch',        lbl:'Крыльцо',            req:'porch'},
+  {id:'railing',      lbl:'Ограждение',         req:'railing'},
+  {id:'fence',        lbl:'Забор',              req:'fence'},
+  {id:'facade',       lbl:'Фасад',              req:'facade'},
+  {id:'beds',         lbl:'Грядки',             req:'beds'},
+  {id:'furniture',    lbl:'Мебель',             req:'furniture'},
+];
+
+// Порядок шагов конфигурации (до шага 10)
+// Ключ — id секции, значение — id экрана
+const SEC_SCREEN = {
+  terrace:      '6',
+  pool_terrace: '6b',
+  paths:        '6c',
+  pier:         '6d',
+  porch:        '7',
+  fence:        '8',
+  // facade убран — сразу переходит к шагу 10
+};
+
+// 16 цветов для фильтра
+const CATALOG_COLORS = [
+  {id:'c1',  hex:'#5C3317', label:'Тёмный дуб'},
+  {id:'c2',  hex:'#8B6331', label:'Светлый дуб'},
+  {id:'c3',  hex:'#C8A96E', label:'Натуральный'},
+  {id:'c4',  hex:'#F5DEB3', label:'Пшеничный'},
+  {id:'c5',  hex:'#E8D5B0', label:'Сосна'},
+  {id:'c6',  hex:'#D2B48C', label:'Бежевый'},
+  {id:'c7',  hex:'#A0522D', label:'Терракот'},
+  {id:'c8',  hex:'#704214', label:'Шоколад'},
+  {id:'c9',  hex:'#3D2B1F', label:'Венге'},
+  {id:'c10', hex:'#1C1C1C', label:'Антрацит'},
+  {id:'c11', hex:'#808080', label:'Серый'},
+  {id:'c12', hex:'#B0C4B1', label:'Зелёный'},
+  {id:'c13', hex:'#E0E0E0', label:'Светло-серый'},
+  {id:'c14', hex:'#F5F5F5', label:'Белый'},
+  {id:'c15', hex:'#C0A080', label:'Тауп'},
+  {id:'c16', hex:'#9B7653', label:'Орех'},
+];
+
+const PRICE_TIERS = [
+  {id:'budget',    lbl:'Бюджетно',             sub:'до 2 000 ₽/м²'},
+  {id:'balanced',  lbl:'Сбалансировано',        sub:'2 000 – 5 000 ₽/м²'},
+  {id:'premium',   lbl:'Премиальное качество',  sub:'от 5 000 ₽/м²'},
+  {id:'mpk',       lbl:'Доска из МПК',          sub:'от 10 000 ₽/м²'},
+];
+
+// Позиции из каталога outdoor-mebel.ru — Доска ДПК универсальная
+const STUB_RESULTS = [
+  {
+    id:1, ic:'🟫',
+    name:'TalverWood Стандарт 150×25',
+    short:'ДПК, двусторонняя, вельвет/гладкая, 5 цветов',
+    detail:'Доска ДПК бренда TalverWood. Состав: 60% древесная мука, 40% полимер. Размер: 150×25×4000 мм. Поверхность с двух сторон: вельвет + гладкая. Цвета: тик, венге, серый, кофе, белый. Гарантия 10 лет.',
+    price:'от 1 850 ₽/м²',
+    color:'#8B6331',
+    url:'https://outdoor-mebel.ru/catalog/terrasnaya_doska_iz_dpk/doska_dpk_universalnaya/talverwood',
+  },
+  {
+    id:2, ic:'🟤',
+    name:'AIWOODek Premium 140×22',
+    short:'ДПК, полнотелая, скрытый крепёж, 8 цветов',
+    detail:'Террасная доска AIWOODek Premium. Полнотелый профиль — повышенная жёсткость. Размер: 140×22×4000 мм. Система скрытого крепежа в комплекте. Фактура: натуральное дерево. Цвета: 8 вариантов от светлого дуба до антрацита.',
+    price:'от 2 400 ₽/м²',
+    color:'#704214',
+    url:'https://outdoor-mebel.ru/catalog/terrasnaya_doska_iz_dpk/doska_dpk_universalnaya/terrasnaya_doska_aiwood',
+  },
+  {
+    id:3, ic:'🪵',
+    name:'NauticPrime Prestige 163×23',
+    short:'ДПК, широкая, коэкструзия, морозостойкая',
+    detail:'Доска NauticPrime серии Prestige. Технология коэкструзии — защитный полимерный слой снаружи. Ширина 163 мм — меньше стыков. Устойчива к морозу до −50°C и УФ-излучению. Не требует покраски весь срок службы (25 лет).',
+    price:'от 3 700 ₽/м²',
+    color:'#5C3317',
+    url:'https://outdoor-mebel.ru/catalog/terrasnaya_doska_iz_dpk/doska_dpk_universalnaya/nauticprime',
+  },
+  {
+    id:4, ic:'⬜',
+    name:'POLIVAN Eco Line 120×28',
+    short:'ДПК, лёгкая полая, бюджетный сегмент',
+    detail:'Доска POLIVAN серии Eco Line. Полый профиль — снижает вес и стоимость настила. Размер: 120×28×3000 мм. Простой монтаж на лаги с шагом 300–400 мм. Оптимальный выбор для дачных террас и беседок.',
+    price:'от 1 350 ₽/м²',
+    color:'#D2B48C',
+    url:'https://outdoor-mebel.ru/catalog/terrasnaya_doska_iz_dpk/doska_dpk_universalnaya/polivan',
+  },
+];
+
+// ══════════════════════════════════════════════
+// СОСТОЯНИЕ
+// ══════════════════════════════════════════════
+const S = {
+  houseType: null,
+  sections: [],
+  pts: { terrace:[], pool_terrace:[], paths:[], pier:[], fence:[] },
+  porch: { x:0.3, y:0.3, w:0.2, h:0.12 },
+  mats: {},
+  samples: [],    // [{id, name, color}] — накопленные образцы
+  activeSample: null, // {id, name, color} — текущий выбранный для примерки
+  curSec: 0,
+  catColors: new Set(),
+  catPrice: null,
+  catShowResults: false,
+};
+const TOTAL = 10;
+let step = 1;
+
+// ══════════════════════════════════════════════
+// НАВИГАЦИЯ
+// ══════════════════════════════════════════════
+function goTo(s) {
+  const prev = document.getElementById('screen-' + step);
+  if (prev) prev.classList.remove('active');
+  step = s;
+  const el = document.getElementById('screen-' + s);
+  if (el) el.classList.add('active');
+  updProg();
+  window.scrollTo(0, 0);
+  const cvMap = {
+    '2':  ()=>init3dCanvas('slot-2'),
+    '3':  ()=>init3dCanvas('slot-3'),
+    '4':  ()=>init3dCanvas('slot-4'),
+    '6':  ()=>initSnapCanvas('terrace'),
+    '6b': ()=>initSnapCanvas('pool_terrace'),
+    '6c': ()=>initPathsCanvas(),
+    '6d': ()=>initSnapCanvas('pier'),
+    '7':  ()=>initPorchCanvas(),
+    '8':  ()=>initSnapCanvas('fence'),
+    '10': ()=>{ init3dCanvas('three-container'); renderSec(); },
+  };
+  if (cvMap[String(s)]) setTimeout(cvMap[String(s)], 80);
+}
+
+function updProg() {
+  const numericSteps = {'6b':6,'6c':6,'6d':6};
+  const n = typeof step === 'number' ? step : (numericSteps[step] || TOTAL);
+  document.getElementById('pfill').style.width = Math.round(n/TOTAL*100)+'%';
+  document.getElementById('plbl').textContent = 'Шаг '+n+' из '+TOTAL;
+}
+
+// Возвращает упорядоченный список активных шагов-экранов (id секций имеющих экран)
+function getStepOrder() {
+  const order = ['terrace','pool_terrace','paths','pier','porch','fence'];
+  return order.filter(id => S.sections.includes(id));
+}
+
+function goToConditional() {
+  S.sections = [...document.querySelectorAll('.ci.checked')].map(e => e.dataset.id);
+  const first = getStepOrder()[0];
+  if (first) goTo(SEC_SCREEN[first]);
+  else goTo(10);
+}
+
+// Переход ВПЕРЁД после конкретной секции
+function goToAfter(secId) {
+  const order = getStepOrder();
+  const idx = order.indexOf(secId);
+  const next = order[idx + 1];
+  if (next) goTo(SEC_SCREEN[next]);
+  else goTo(10);
+}
+
+// Переход вперёд со шага 6 (терраса)
+function goToAfter6() {
+  // Крыльцо: если есть терраса, показываем план с террасой
+  goToAfter('terrace');
+}
+
+// Переход НАЗАД со стороны конкретной секции
+function goToPrev(secId) {
+  const order = getStepOrder();
+  const idx = order.indexOf(secId);
+  if (idx > 0) goTo(SEC_SCREEN[order[idx - 1]]);
+  else goTo(5);
+}
+
+function goBack10() {
+  const order = getStepOrder();
+  const last = order[order.length - 1];
+  if (last) goTo(SEC_SCREEN[last]);
+  else goTo(5);
+}
+
+function selHouse(el, name) {
+  document.querySelectorAll('.house-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected'); S.houseType = name;
+}
+function tci(el) { el.classList.toggle('checked'); }
+function ttg(el) { el.classList.toggle('on'); }
+
+// ══════════════════════════════════════════════
+// PAN/ZOOM ENGINE
+// ══════════════════════════════════════════════
+const CV = {};
+const GRID = 32;
+
+function mkCvState() {
+  return { scale:1, ox:0, oy:0, minScale:0.5, maxScale:4,
+           dragging:false, lastX:0, lastY:0, pinching:false, lastDist:0 };
+}
+
+function applyTransform(ctx, cx, W, H) {
+  ctx.clearRect(0,0,W,H); ctx.save();
+  ctx.translate(cx.ox, cx.oy); ctx.scale(cx.scale, cx.scale);
+}
+
+function attachPanZoom(el, cvName, onRedraw) {
+  const cx = CV[cvName];
+  el.addEventListener('touchstart', e=>{
+    if (e.touches.length===2) {
+      cx.pinching=true; cx.dragging=false;
+      cx.lastDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,
+                              e.touches[0].clientY-e.touches[1].clientY);
+    } else if (e.touches.length===1 && !cx.pinching) {
+      cx.dragging=true; cx.lastX=e.touches[0].clientX; cx.lastY=e.touches[0].clientY;
+    }
+  },{passive:true});
+  el.addEventListener('touchmove', e=>{
+    if (cx.pinching && e.touches.length===2) {
+      const dist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,
+                             e.touches[0].clientY-e.touches[1].clientY);
+      const ratio=dist/cx.lastDist; cx.lastDist=dist;
+      const mid={ x:(e.touches[0].clientX+e.touches[1].clientX)/2,
+                  y:(e.touches[0].clientY+e.touches[1].clientY)/2 };
+      const r=el.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+      const mx=(mid.x-r.left)*dpr, my=(mid.y-r.top)*dpr;
+      const ns=Math.min(cx.maxScale,Math.max(cx.minScale,cx.scale*ratio));
+      cx.ox=mx-(mx-cx.ox)*(ns/cx.scale); cx.oy=my-(my-cx.oy)*(ns/cx.scale); cx.scale=ns;
+      onRedraw();
+    } else if (cx.dragging && e.touches.length===1 && !cx.pinching) {
+      const dpr=window.devicePixelRatio||1;
+      cx.ox+=(e.touches[0].clientX-cx.lastX)*dpr;
+      cx.oy+=(e.touches[0].clientY-cx.lastY)*dpr;
+      cx.lastX=e.touches[0].clientX; cx.lastY=e.touches[0].clientY;
+      onRedraw();
+    }
+    e.preventDefault();
+  },{passive:false});
+  el.addEventListener('touchend', e=>{
+    if (e.touches.length<2) cx.pinching=false;
+    if (e.touches.length===0) cx.dragging=false;
+  },{passive:true});
+  el.addEventListener('wheel', e=>{
+    e.preventDefault();
+    const r=el.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+    const mx=(e.clientX-r.left)*dpr, my=(e.clientY-r.top)*dpr;
+    const f=e.deltaY<0?1.15:0.87;
+    const ns=Math.min(cx.maxScale,Math.max(cx.minScale,cx.scale*f));
+    cx.ox=mx-(mx-cx.ox)*(ns/cx.scale); cx.oy=my-(my-cx.oy)*(ns/cx.scale); cx.scale=ns;
+    onRedraw();
+  },{passive:false});
+}
+
+// ══════════════════════════════════════════════
+// SNAP-CANVAS (терраса, pool, pier, fence, paths-точки)
+// ══════════════════════════════════════════════
+function initSnapCanvas(name) {
+  const wrap=document.getElementById('cw-'+name);
+  const cv=document.getElementById('cv-'+name);
+  const dpr=window.devicePixelRatio||1, sz=wrap.offsetWidth;
+  cv.width=sz*dpr; cv.height=sz*dpr;
+  cv.style.width=sz+'px'; cv.style.height=sz+'px';
+  CV[name]=mkCvState();
+
+  // Если есть терраса и это крыльцо — покажем террасу в фоне
+  // (для pool_terrace/pier/paths фон нейтральный)
+  drawSnapCanvas(name);
+
+  const newCv=cv.cloneNode(true); wrap.replaceChild(newCv, cv);
+  attachPanZoom(wrap, name, ()=>drawSnapCanvas(name));
+
+  // Клик — добавить точку с snap
+  wrap.addEventListener('click', e=>{
+    if (CV[name].pinching) return;
+    const cvEl=document.getElementById('cv-'+name); if (!cvEl) return;
+    const r=wrap.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+    const sx=(e.clientX-r.left)*dpr, sy=(e.clientY-r.top)*dpr;
+    const cx=CV[name];
+    const wx=(sx-cx.ox)/cx.scale, wy=(sy-cx.oy)/cx.scale;
+    const W=cvEl.width, step=W/GRID;
+    S.pts[name].push({ x:Math.round(wx/step)*step/W, y:Math.round(wy/step)*step/W });
+    drawSnapCanvas(name);
+  });
+}
+
+// Вычислить прямоугольник дома на canvas в нормализованных координатах 0..1
+// На основе реальных параметров площади. Canvas = GRID×GRID м сетка.
+function getHouseRectNorm() {
+  const area = parseFloat(document.getElementById('v-area')?.value || 120);
+  const RATIO = 1.6;
+  const houseW = Math.sqrt(area / RATIO); // ширина (по Z / по Y canvas)
+  const houseL = houseW * RATIO;          // длина (по X)
+  const gridSize = GRID;
+  // Центрируем дом на canvas
+  const nx = (gridSize - houseL) / 2 / gridSize;
+  const ny = (gridSize - houseW) / 2 / gridSize;
+  const nw = houseL / gridSize;
+  const nh = houseW / gridSize;
+  return { nx, ny, nw, nh, houseL, houseW };
+}
+
+// Рисование ранее заданных объектов как фон на canvas-шагах
+// excludeName — текущая секция (не рисуем её повторно, она рисуется как основной слой)
+function drawPreviousLayers(ctx, W, H, cx, excludeName) {
+  const sc = cx.scale || 1;
+
+  // 1. Дом
+  if (S.houseType !== 'Участок без дома') {
+    const hr = getHouseRectNorm();
+    const hx=hr.nx*W, hy=hr.ny*H, hw=hr.nw*W, hh=hr.nh*H;
+    ctx.strokeStyle='#555'; ctx.lineWidth=2.5/sc; ctx.setLineDash([]);
+    ctx.strokeRect(hx,hy,hw,hh);
+    ctx.fillStyle='rgba(0,0,0,.06)'; ctx.fillRect(hx,hy,hw,hh);
+    // Штриховка
+    ctx.save();
+    ctx.beginPath(); ctx.rect(hx,hy,hw,hh); ctx.clip();
+    ctx.strokeStyle='rgba(0,0,0,.08)'; ctx.lineWidth=1/sc;
+    for (let d = -Math.max(hw,hh); d < Math.max(hw,hh)*2; d += 8/sc) {
+      ctx.beginPath(); ctx.moveTo(hx+d, hy); ctx.lineTo(hx+d-hh, hy+hh); ctx.stroke();
+    }
+    ctx.restore();
+    ctx.fillStyle='#666'; ctx.font=`bold ${13/sc}px Roboto`; ctx.textAlign='center';
+    ctx.fillText('ДОМ', hx+hw/2, hy+hh/2+5/sc);
+    ctx.fillStyle='#888'; ctx.font=`${10/sc}px Roboto`;
+    ctx.fillText(hr.houseL.toFixed(1)+'м', hx+hw/2, hy-6/sc);
+    ctx.save(); ctx.translate(hx-6/sc, hy+hh/2);
+    ctx.rotate(-Math.PI/2); ctx.textAlign='center';
+    ctx.fillText(hr.houseW.toFixed(1)+'м', 0, 0); ctx.restore();
+  }
+
+  // Цвета для фоновых слоёв
+  const layerStyles = {
+    terrace:      { fill:'rgba(0,150,80,.12)',  stroke:'rgba(0,150,80,.5)',  label:'Терраса' },
+    pool_terrace: { fill:'rgba(0,80,200,.10)',  stroke:'rgba(0,80,200,.5)',  label:'Терр. бассейна' },
+    pier:         { fill:'rgba(26,122,204,.10)',stroke:'rgba(26,122,204,.5)',label:'Причал' },
+    fence:        { fill:'none',                stroke:'rgba(0,0,0,.3)',     label:'Забор' },
+  };
+
+  // 2. Полигоны: terrace, pool_terrace, pier, fence
+  for (const [secId, style] of Object.entries(layerStyles)) {
+    if (secId === excludeName) continue;
+    const tp = S.pts[secId];
+    if (!tp || tp.length < 2) continue;
+    ctx.beginPath(); ctx.moveTo(tp[0].x*W, tp[0].y*H);
+    for (let i=1; i<tp.length; i++) ctx.lineTo(tp[i].x*W, tp[i].y*H);
+    if (tp.length > 2 && secId !== 'fence') ctx.closePath();
+    else if (secId === 'fence' && tp.length > 2) ctx.closePath();
+    if (style.fill !== 'none') { ctx.fillStyle=style.fill; ctx.fill(); }
+    ctx.strokeStyle=style.stroke; ctx.lineWidth=2/sc;
+    ctx.setLineDash([6/sc,3/sc]); ctx.stroke(); ctx.setLineDash([]);
+    // Подпись
+    const centX = tp.reduce((s,p)=>s+p.x,0)/tp.length*W;
+    const centY = tp.reduce((s,p)=>s+p.y,0)/tp.length*H;
+    ctx.fillStyle=style.stroke; ctx.font=`${10/sc}px Roboto`; ctx.textAlign='center';
+    ctx.fillText(style.label, centX, centY);
+  }
+
+  // 3. Дорожки — рисуем как полосу указанной ширины
+  if (excludeName !== 'paths') {
+    const pp = S.pts.paths;
+    if (pp && pp.length >= 2) {
+      const pathWidthCm = parseFloat(document.getElementById('v-paths-width')?.value || 120);
+      const pathHalfW = (pathWidthCm / 100) / GRID * W / 2; // половина ширины в пикселях canvas
+      ctx.strokeStyle='rgba(51,102,0,.3)'; ctx.lineWidth=pathHalfW*2; ctx.lineCap='round'; ctx.lineJoin='round';
+      ctx.beginPath(); ctx.moveTo(pp[0].x*W, pp[0].y*H);
+      for (let i=1; i<pp.length; i++) ctx.lineTo(pp[i].x*W, pp[i].y*H);
+      ctx.stroke();
+      ctx.lineWidth=2/sc; // reset
+      // Подпись
+      const mid = pp[Math.floor(pp.length/2)];
+      ctx.fillStyle='rgba(51,102,0,.6)'; ctx.font=`${10/sc}px Roboto`; ctx.textAlign='center';
+      ctx.fillText('Дорожка', mid.x*W, mid.y*H - pathHalfW - 4/sc);
+    }
+  }
+
+  // 4. Крыльцо (если не текущий шаг)
+  if (excludeName !== 'porch' && S.sections.includes('porch')) {
+    const p = S.porch;
+    const px=p.x*W, py=p.y*H, pw=p.w*W, ph=p.h*H;
+    ctx.fillStyle='rgba(0,100,220,.10)'; ctx.fillRect(px,py,pw,ph);
+    ctx.strokeStyle='rgba(0,100,220,.4)'; ctx.lineWidth=2/sc;
+    ctx.setLineDash([4/sc,2/sc]); ctx.strokeRect(px,py,pw,ph); ctx.setLineDash([]);
+    ctx.fillStyle='rgba(0,100,220,.5)'; ctx.font=`${10/sc}px Roboto`; ctx.textAlign='center';
+    ctx.fillText('Крыльцо', px+pw/2, py+ph/2+4/sc);
+  }
+}
+
+function drawSnapCanvas(name) {
+  const cvEl=document.getElementById('cv-'+name); if (!cvEl) return;
+  const ctx=cvEl.getContext('2d'), W=cvEl.width, H=cvEl.height;
+  const cx=CV[name]||{scale:1,ox:0,oy:0};
+  const pts=S.pts[name]||[];
+  applyTransform(ctx,cx,W,H);
+
+  ctx.fillStyle='#d9d9d9'; ctx.fillRect(0,0,W,H);
+
+  // Сетка
+  const step=W/GRID;
+  ctx.fillStyle='#bbb';
+  for(let r=0;r<=GRID;r++) for(let c=0;c<=GRID;c++) {
+    ctx.beginPath(); ctx.arc(c*step,r*step,2/cx.scale,0,Math.PI*2); ctx.fill();
+  }
+
+  // Метки метров (каждые 5м)
+  ctx.fillStyle='#999'; ctx.font=`${9/cx.scale}px Roboto`; ctx.textAlign='center';
+  for(let i=5;i<=GRID;i+=5) ctx.fillText(i+'м', i*step, H-3/cx.scale);
+
+  // Ранее заданные объекты (дом, терраса, дорожки, крыльцо и т.д.)
+  drawPreviousLayers(ctx, W, H, cx, name);
+
+  // Подсказка (если ещё нет точек)
+  if (!pts.length) {
+    ctx.fillStyle='#aaa'; ctx.font=`${13/cx.scale}px Roboto`; ctx.textAlign='center';
+    const hint={terrace:'Нажмите чтобы поставить угол',pool_terrace:'Нажмите чтобы поставить угол',
+                 pier:'Нажмите чтобы поставить угол',fence:'Нажмите чтобы поставить угол',
+                 paths:'Нажмите точки вдоль дорожки'};
+    ctx.fillText(hint[name]||'Нажмите чтобы поставить точку', W/2, H*0.92);
+  }
+
+  // Контур текущей секции
+  if (pts.length > 0) {
+    const color = {terrace:'#000',pool_terrace:'#0050CC',pier:'#1a7acc',paths:'#336600',fence:'#000'}[name]||'#000';
+
+    if (name === 'paths') {
+      // Дорожки — рисуем широкой полосой
+      const pathWidthCm = parseFloat(document.getElementById('v-paths-width')?.value || 120);
+      const pathW = (pathWidthCm / 100) / GRID * W;
+      // Полоса
+      ctx.strokeStyle='rgba(51,102,0,.25)'; ctx.lineWidth=pathW; ctx.lineCap='round'; ctx.lineJoin='round';
+      ctx.beginPath(); ctx.moveTo(pts[0].x*W, pts[0].y*H);
+      for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x*W, pts[i].y*H);
+      ctx.stroke();
+      // Центральная линия
+      ctx.strokeStyle=color; ctx.lineWidth=2/cx.scale; ctx.lineCap='butt';
+      ctx.setLineDash([6/cx.scale,3/cx.scale]);
+      ctx.beginPath(); ctx.moveTo(pts[0].x*W, pts[0].y*H);
+      for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x*W, pts[i].y*H);
+      ctx.stroke(); ctx.setLineDash([]);
+    } else {
+      // Полигоны
+      ctx.beginPath(); ctx.moveTo(pts[0].x*W,pts[0].y*H);
+      for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x*W,pts[i].y*H);
+      if(pts.length>2) { ctx.closePath(); ctx.fillStyle='rgba(0,0,0,.08)'; ctx.fill(); }
+      ctx.strokeStyle=color; ctx.lineWidth=2.5/cx.scale; ctx.stroke();
+    }
+
+    // Точки
+    pts.forEach((p,i)=>{
+      ctx.beginPath(); ctx.arc(p.x*W,p.y*H,8/cx.scale,0,Math.PI*2);
+      ctx.fillStyle='#fff'; ctx.fill();
+      ctx.strokeStyle=color; ctx.lineWidth=2.5/cx.scale; ctx.stroke();
+      ctx.fillStyle=color; ctx.font=`bold ${10/cx.scale}px Roboto`; ctx.textAlign='center';
+      ctx.fillText(i+1,p.x*W,p.y*H+4/cx.scale);
+    });
+  }
+
+  ctx.restore();
+}
+
+function undoPt(n) { S.pts[n].pop(); drawSnapCanvas(n); }
+function clrPts(n) { S.pts[n]=[]; drawSnapCanvas(n); }
+
+// Для дорожек - тот же snap-canvas, уже обрабатывается выше
+function initPathsCanvas() { initSnapCanvas('paths'); }
+
+// ══════════════════════════════════════════════
+// КРЫЛЬЦО: drag+resize С ПОКАЗОМ ТЕРРАСЫ В ФОНЕ
+// ══════════════════════════════════════════════
+const HANDLE_R=18;
+let porchDrag=null, porchDragStart=null;
+
+function initPorchCanvas() {
+  const wrap=document.getElementById('cw-porch');
+  const cv=document.getElementById('cv-porch');
+  const dpr=window.devicePixelRatio||1, sz=wrap.offsetWidth;
+  cv.width=sz*dpr; cv.height=sz*dpr;
+  cv.style.width=sz+'px'; cv.style.height=sz+'px';
+  CV['porch']=mkCvState();
+  drawPorchCanvas();
+  const newCv=cv.cloneNode(true); wrap.replaceChild(newCv, cv);
+
+  attachPorchEvents(wrap);
+}
+
+// Единый обработчик событий крыльца — чтобы не было конфликта pan vs drag
+function attachPorchEvents(wrap) {
+  const cx = CV['porch'];
+  let touchId = null;     // id пальца, тащящего крыльцо
+  let pinchActive = false;
+
+  const getWorld = (clientX, clientY) => {
+    const cvEl = document.getElementById('cv-porch');
+    const r = wrap.getBoundingClientRect(), dpr = window.devicePixelRatio||1;
+    return {
+      x: ((clientX - r.left)*dpr - cx.ox) / cx.scale,
+      y: ((clientY - r.top )*dpr - cx.oy) / cx.scale,
+      W: cvEl.width,
+    };
+  };
+
+  // ── TOUCH ──────────────────────────────────────────────────────────
+  wrap.addEventListener('touchstart', e=>{
+    e.preventDefault();
+    if (e.touches.length === 2) {
+      // Два пальца → только zoom, drag сбрасываем
+      pinchActive = true; porchDrag = null; touchId = null;
+      cx.lastDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY);
+      return;
+    }
+    if (e.touches.length === 1 && !pinchActive) {
+      const t = e.touches[0];
+      const {x,y,W} = getWorld(t.clientX, t.clientY);
+      const hit = hitPorchHandle(x,y,W);
+      if (hit) {
+        porchDrag = hit;
+        porchDragStart = {mx:x, my:y, ...S.porch};
+        touchId = t.identifier;
+      }
+      // Если не в крыльцо — ничего (pan специально отключён,
+      // чтобы первое касание всегда захватывало крыльцо)
+    }
+  },{passive:false});
+
+  wrap.addEventListener('touchmove', e=>{
+    e.preventDefault();
+    if (pinchActive && e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY);
+      const ratio = dist / cx.lastDist; cx.lastDist = dist;
+      const mid = {
+        x: (e.touches[0].clientX + e.touches[1].clientX)/2,
+        y: (e.touches[0].clientY + e.touches[1].clientY)/2,
+      };
+      const r=wrap.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+      const mx=(mid.x-r.left)*dpr, my=(mid.y-r.top)*dpr;
+      const ns=Math.min(cx.maxScale, Math.max(cx.minScale, cx.scale*ratio));
+      cx.ox=mx-(mx-cx.ox)*(ns/cx.scale); cx.oy=my-(my-cx.oy)*(ns/cx.scale); cx.scale=ns;
+      drawPorchCanvas(); return;
+    }
+    if (porchDrag && touchId !== null) {
+      const t = [...e.touches].find(t=>t.identifier===touchId); if (!t) return;
+      const {x,y,W} = getWorld(t.clientX, t.clientY);
+      applyPorchDrag(x,y,W);
+    }
+  },{passive:false});
+
+  wrap.addEventListener('touchend', e=>{
+    if (e.touches.length < 2) pinchActive = false;
+    if (e.touches.length === 0) { porchDrag=null; porchDragStart=null; touchId=null; }
+  },{passive:true});
+
+  // ── МЫШЬ ───────────────────────────────────────────────────────────
+  wrap.addEventListener('mousedown', e=>{
+    const {x,y,W} = getWorld(e.clientX, e.clientY);
+    const hit = hitPorchHandle(x,y,W);
+    if (hit) {
+      porchDrag=hit; porchDragStart={mx:x,my:y,...S.porch};
+      wrap.style.cursor = hit==='move'?'move':'nwse-resize';
+    }
+  });
+  document.addEventListener('mousemove', e=>{
+    if (!porchDrag) return;
+    const {x,y,W} = getWorld(e.clientX, e.clientY); applyPorchDrag(x,y,W);
+  });
+  document.addEventListener('mouseup', ()=>{ porchDrag=null; porchDragStart=null; wrap.style.cursor='default'; });
+
+  // Колесо → zoom
+  wrap.addEventListener('wheel', e=>{
+    e.preventDefault();
+    const r=wrap.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+    const mx=(e.clientX-r.left)*dpr, my=(e.clientY-r.top)*dpr;
+    const f=e.deltaY<0?1.15:0.87;
+    const ns=Math.min(cx.maxScale,Math.max(cx.minScale,cx.scale*f));
+    cx.ox=mx-(mx-cx.ox)*(ns/cx.scale); cx.oy=my-(my-cx.oy)*(ns/cx.scale); cx.scale=ns;
+    drawPorchCanvas();
+  },{passive:false});
+}
+
+function getPorchRect(W) {
+  const p=S.porch; return {x:p.x*W,y:p.y*W,w:p.w*W,h:p.h*W};
+}
+function hitPorchHandle(wx,wy,W) {
+  const {x,y,w,h}=getPorchRect(W), R=HANDLE_R*2;
+  for(const [id,cx,cy] of [['nw',x,y],['ne',x+w,y],['sw',x,y+h],['se',x+w,y+h]])
+    if(Math.abs(wx-cx)<R && Math.abs(wy-cy)<R) return id;
+  if(wx>=x&&wx<=x+w&&wy>=y&&wy<=y+h) return 'move';
+  return null;
+}
+function applyPorchDrag(wx,wy,W) {
+  const ds=porchDragStart, dx=(wx-ds.mx)/W, dy=(wy-ds.my)/W, mn=0.05, p=S.porch;
+  if(porchDrag==='move'){ p.x=Math.max(0,Math.min(1-ds.w,ds.x+dx)); p.y=Math.max(0,Math.min(1-ds.h,ds.y+dy)); }
+  else if(porchDrag==='se'){ p.w=Math.max(mn,ds.w+dx); p.h=Math.max(mn,ds.h+dy); }
+  else if(porchDrag==='sw'){ const nw=Math.max(mn,ds.w-dx); p.x=ds.x+ds.w-nw; p.w=nw; p.h=Math.max(mn,ds.h+dy); }
+  else if(porchDrag==='ne'){ p.w=Math.max(mn,ds.w+dx); const nh=Math.max(mn,ds.h-dy); p.y=ds.y+ds.h-nh; p.h=nh; }
+  else if(porchDrag==='nw'){ const nw2=Math.max(mn,ds.w-dx); p.x=ds.x+ds.w-nw2; p.w=nw2; const nh2=Math.max(mn,ds.h-dy); p.y=ds.y+ds.h-nh2; p.h=nh2; }
+  drawPorchCanvas();
+}
+
+function drawPorchCanvas() {
+  const cvEl=document.getElementById('cv-porch'); if (!cvEl) return;
+  const ctx=cvEl.getContext('2d'), W=cvEl.width, H=cvEl.height;
+  const cx=CV['porch']||{scale:1,ox:0,oy:0};
+  applyTransform(ctx,cx,W,H);
+
+  ctx.fillStyle='#d9d9d9'; ctx.fillRect(0,0,W,H);
+
+  // Сетка
+  const step=W/GRID; ctx.fillStyle='#bbb';
+  for(let r=0;r<=GRID;r++) for(let c=0;c<=GRID;c++) {
+    ctx.beginPath(); ctx.arc(c*step,r*step,2/cx.scale,0,Math.PI*2); ctx.fill();
+  }
+  // Метки метров
+  ctx.fillStyle='#999'; ctx.font=`${9/cx.scale}px Roboto`; ctx.textAlign='center';
+  for(let i=5;i<=GRID;i+=5) ctx.fillText(i+'м', i*step, H-3/cx.scale);
+
+  // Ранее заданные объекты (дом, терраса, дорожки и т.д.)
+  drawPreviousLayers(ctx, W, H, cx, 'porch');
+
+  // Крыльцо
+  const {x,y,w,h}=getPorchRect(W);
+  ctx.fillStyle='rgba(0,100,220,.18)'; ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle='#0064DC'; ctx.lineWidth=2.5/cx.scale; ctx.strokeRect(x,y,w,h);
+  ctx.fillStyle='#0064DC'; ctx.font=`bold ${11/cx.scale}px Roboto`; ctx.textAlign='center';
+  ctx.fillText('Крыльцо',x+w/2,y+h/2+4/cx.scale);
+
+  // Ручки
+  [[x,y],[x+w,y],[x,y+h],[x+w,y+h]].forEach(([hpx,hpy])=>{
+    ctx.beginPath(); ctx.arc(hpx,hpy,HANDLE_R/cx.scale,0,Math.PI*2);
+    ctx.fillStyle='#fff'; ctx.fill();
+    ctx.strokeStyle='#0064DC'; ctx.lineWidth=2/cx.scale; ctx.stroke();
+  });
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════
+// THREE.JS 3D ВИЗУАЛИЗАЦИЯ
+// ══════════════════════════════════════════════
+let threeState = null; // {renderer, scene, camera, controls, houseGroup, animId}
+
+// Именованные группы для применения материалов
+// threeState.wallMeshes = [] — все стеновые mesh'и
+// threeState.deckMeshes = [] — все доски террасы (верхняя поверхность)
+// threeState.porchMeshes = [] — доски крыльца
+
+function init3dCanvas(targetSlotId) {
+  const targetSlot = document.getElementById(targetSlotId || 'three-container');
+  if (!targetSlot || typeof THREE === 'undefined') return;
+
+  // Если уже инициализирован — перемещаем renderer в целевой слот и обновляем
+  if (threeState) {
+    moveThreeTo(targetSlotId);
+    resizeThree();
+    buildScene3d();
+    return;
+  }
+
+  const W = targetSlot.offsetWidth || 360;
+  const H = targetSlot.offsetHeight || 360;
+
+  // --- Renderer ---
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  targetSlot.appendChild(renderer.domElement);
+  renderer.domElement.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;border-radius:12px;';
+
+  // --- Scene ---
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(new THREE.Color(0.65, 0.78, 0.95), 40, 90);
+
+  // --- Camera ---
+  const camera = new THREE.PerspectiveCamera(45, W / H, 0.1, 200);
+  camera.position.set(18, 12, 18);
+
+  // --- Controls ---
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.target.set(4, 2, 2.5);
+  controls.minDistance = 4;
+  controls.maxDistance = 50;
+  controls.maxPolarAngle = Math.PI / 2.05;
+
+  // --- Sky sphere ---
+  const skyGeo = new THREE.SphereGeometry(80, 32, 16);
+  const skyMat = new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    depthWrite: false,
+    uniforms: {
+      skyTop:    { value: new THREE.Color(0.25, 0.45, 0.85) },
+      skyHoriz:  { value: new THREE.Color(0.65, 0.78, 0.95) },
+      ground:    { value: new THREE.Color(0.28, 0.4, 0.22) },
+    },
+    vertexShader: `
+      varying vec3 vPos;
+      void main() { vPos = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
+    `,
+    fragmentShader: `
+      uniform vec3 skyTop, skyHoriz, ground;
+      varying vec3 vPos;
+      void main() {
+        float e = vPos.y;
+        vec3 col = mix(skyHoriz, skyTop, smoothstep(0.0, 0.5, e));
+        col = mix(ground * 0.5, col, smoothstep(-0.05, 0.05, e));
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `
+  });
+  scene.add(new THREE.Mesh(skyGeo, skyMat));
+
+  // --- Lights ---
+  scene.add(new THREE.AmbientLight(0xfff8e8, 0.6));
+  const sun = new THREE.DirectionalLight(0xfff4e0, 1.2);
+  sun.position.set(12, 20, 8);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.left = -15; sun.shadow.camera.right = 15;
+  sun.shadow.camera.top  =  15; sun.shadow.camera.bottom = -15;
+  sun.shadow.camera.near = 1;   sun.shadow.camera.far = 50;
+  sun.shadow.bias = -0.0003;
+  sun.shadow.radius = 3;
+  scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0x87ceeb, 0x4a7c3f, 0.5));
+
+  // --- Ground ---
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(100, 100),
+    new THREE.MeshStandardMaterial({ color: 0x4a7c3f, roughness: 0.95, metalness: 0 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // --- House group ---
+  const houseGroup = new THREE.Group();
+  scene.add(houseGroup);
+
+  threeState = { renderer, scene, camera, controls, houseGroup, animId: null,
+                 wallMeshes: [], deckMeshes: [], porchMeshes: [],
+                 stepMeshes: [], fenceMeshes: [], railingMeshes: [],
+                 currentSlot: targetSlotId };
+
+  // --- Animation loop ---
+  function animate() {
+    threeState.animId = requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  buildScene3d();
+}
+
+// Перемещаем canvas Three.js в другой слот
+function moveThreeTo(slotId) {
+  if (!threeState) return;
+  const target = document.getElementById(slotId);
+  if (!target) return;
+  if (threeState.currentSlot === slotId) return;
+  // Перемещаем DOM-элемент renderer'а
+  target.appendChild(threeState.renderer.domElement);
+  threeState.currentSlot = slotId;
+  // Пере-привязываем OrbitControls к новому DOM
+  threeState.controls.dispose();
+  threeState.controls = new THREE.OrbitControls(threeState.camera, threeState.renderer.domElement);
+  threeState.controls.enableDamping = true;
+  threeState.controls.dampingFactor = 0.08;
+  threeState.controls.minDistance = 4;
+  threeState.controls.maxDistance = 50;
+  threeState.controls.maxPolarAngle = Math.PI / 2.05;
+}
+
+function resizeThree() {
+  if (!threeState) return;
+  const wrap = document.getElementById(threeState.currentSlot);
+  if (!wrap) return;
+  const W = wrap.offsetWidth, H = wrap.offsetHeight;
+  if (!W || !H) return;
+  const { renderer, camera } = threeState;
+  camera.aspect = W / H;
+  camera.updateProjectionMatrix();
+  renderer.setSize(W, H);
+}
+
+// Вызывается при изменении параметров на шагах 2-4
+let paramChangeTimer = null;
+function onParamChange() {
+  clearTimeout(paramChangeTimer);
+  paramChangeTimer = setTimeout(() => {
+    if (threeState) buildScene3d();
+  }, 150);
+}
+
+// ══════════════════════════════════════════════
+// SHARED 3D MATERIALS
+// ══════════════════════════════════════════════
+function getHouseMats() {
+  return {
+    wall:   new THREE.MeshStandardMaterial({ color: 0xf5e6c8, roughness: 0.85, metalness: 0.02 }),
+    base:   new THREE.MeshStandardMaterial({ color: 0x8a8278, roughness: 0.90, metalness: 0.05 }),
+    roof:   new THREE.MeshStandardMaterial({ color: 0x8b3a3a, roughness: 0.70, metalness: 0.10, side: THREE.DoubleSide }),
+    glass:  new THREE.MeshStandardMaterial({ color: 0x6baed6, roughness: 0.05, metalness: 0.5, transparent: true, opacity: 0.6 }),
+    frame:  new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.40, metalness: 0.15 }),
+    door:   new THREE.MeshStandardMaterial({ color: 0x5c3a1e, roughness: 0.75, metalness: 0.05 }),
+    // Терраса / крыльцо
+    deck:   new THREE.MeshStandardMaterial({ color: 0xC8A96E, roughness: 0.72, metalness: 0.02 }),
+    joist:  new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.85, metalness: 0.15 }),
+    post:   new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.80, metalness: 0.20 }),
+    step:   new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.80, metalness: 0.05 }),
+  };
+}
+
+// ══════════════════════════════════════════════
+// MAIN SCENE BUILDER
+// ══════════════════════════════════════════════
+function buildScene3d() {
+  if (!threeState || typeof THREE === 'undefined') return;
+  const { houseGroup, controls } = threeState;
+
+  // Clear everything
+  clearGroup(houseGroup);
+  threeState.wallMeshes = [];
+  threeState.deckMeshes = [];
+  threeState.porchMeshes = [];
+  threeState.stepMeshes = [];
+  threeState.fenceMeshes = [];
+  threeState.railingMeshes = [];
+
+  const M = getHouseMats();
+
+  // Apply active sample color to relevant section
+  if (S.activeSample && S.activeSample.color) {
+    const sec = getActive()[S.curSec];
+    const secId = sec ? sec.id : 'terrace';
+    if (secId === 'facade') {
+      M.wall.color.set(S.activeSample.color);
+    } else if (secId === 'porch') {
+      M.step.color.set(S.activeSample.color);
+    } else {
+      M.deck.color.set(S.activeSample.color);
+    }
+  }
+
+  const isNoHouse = (S.houseType === 'Участок без дома');
+
+  // Pull params
+  const area      = parseFloat(document.getElementById('v-area')?.value || 120);
+  const wallH     = parseFloat(document.getElementById('v-floor')?.value || 400) / 100;
+  const foundH    = parseFloat(document.getElementById('v-found')?.value || 80) / 100;
+  const RATIO     = 1.6;
+  const wt        = 0.2;
+
+  const houseW = Math.sqrt(area / RATIO);
+  const houseL = houseW * RATIO;
+  const wh     = Math.min(Math.max(wallH, 2), 5);
+  const bh     = Math.max(foundH, 0.1);
+
+  // ── BUILD HOUSE ──
+  if (!isNoHouse) {
+    buildHouseMeshes(houseGroup, M, houseL, houseW, wh, bh, wt);
+  }
+
+  // ── BUILD TERRACE ──
+  if (S.sections.includes('terrace') && S.pts.terrace.length >= 3) {
+    const terraceH = isNoHouse ? 0.35 : bh;
+    buildTerrace3d(houseGroup, M, S.pts.terrace, terraceH, houseL, houseW, 'deckMeshes');
+  }
+
+  // ── BUILD POOL TERRACE ──
+  if (S.sections.includes('pool_terrace') && S.pts.pool_terrace.length >= 3) {
+    const terraceH = isNoHouse ? 0.35 : bh;
+    buildTerrace3d(houseGroup, M, S.pts.pool_terrace, terraceH, houseL, houseW, 'deckMeshes');
+  }
+
+  // ── BUILD PIER ──
+  if (S.sections.includes('pier') && S.pts.pier.length >= 3) {
+    buildTerrace3d(houseGroup, M, S.pts.pier, 0.5, houseL, houseW, 'deckMeshes');
+  }
+
+  // ── BUILD PATHS ──
+  if (S.sections.includes('paths') && S.pts.paths.length >= 2) {
+    buildPaths3d(houseGroup, M, S.pts.paths, houseL, houseW);
+  }
+
+  // ── BUILD PORCH ──
+  if (S.sections.includes('porch') && !isNoHouse) {
+    buildPorch3d(houseGroup, M, S.porch, houseL, houseW, bh);
+  }
+
+  // ── BUILD FENCE ──
+  if (S.sections.includes('fence') && S.pts.fence.length >= 2) {
+    buildFence3d(houseGroup, M, S.pts.fence, houseL, houseW);
+  }
+
+  // ── BUILD TERRACE RAILING (условно) ──
+  if (S.sections.includes('railing') && S.pts.terrace.length >= 3) {
+    const terraceH = isNoHouse ? 0.35 : bh;
+    buildRailing3d(houseGroup, M, S.pts.terrace, terraceH, houseL, houseW);
+  }
+
+  // Center camera
+  const cx = isNoHouse ? 0 : houseL/2;
+  const cy = isNoHouse ? 1 : (bh+wh)/2;
+  const cz = isNoHouse ? 0 : houseW/2;
+  controls.target.set(cx, cy, cz);
+  controls.update();
+}
+
+function clearGroup(group) {
+  while (group.children.length) {
+    const c = group.children[0];
+    group.remove(c);
+    if (c.geometry) c.geometry.dispose();
+    if (c.children) clearGroup(c);
+  }
+}
+
+// ══════════════════════════════════════════════
+// HOUSE BUILDER (дом — существующая логика)
+// ══════════════════════════════════════════════
+function buildHouseMeshes(parent, M, length, width, wh, bh, wt) {
+  const box = (sx, sy, sz) => new THREE.BoxGeometry(sx, sy, sz);
+  const mesh = (geo, mat) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; return m; };
+
+  // Basement
+  const bm = mesh(box(length + 0.2, bh, width + 0.2), M.base);
+  bm.position.set(length/2, bh/2, width/2);
+  parent.add(bm);
+
+  // Window / door constants
+  const WWIN = 0.9, HWIN = 1.2, YWIN = 1.0;
+  const WDOOR = 1.0, HDOOR = 2.2;
+
+  function xWallWithWins(len, wins) {
+    const g = new THREE.Group();
+    const sorted = [...wins].sort((a,b)=>a.x-b.x);
+    const botH = sorted.length ? Math.min(...sorted.map(w=>w.y)) : wh;
+    const topStart = sorted.length ? Math.max(...sorted.map(w=>w.y+w.h)) : wh;
+    if (botH > 0.01) { const m=mesh(box(len,botH,wt),M.wall); m.position.set(len/2,botH/2,wt/2); g.add(m); threeState.wallMeshes.push(m); }
+    if (wh - topStart > 0.01) { const m=mesh(box(len,wh-topStart,wt),M.wall); m.position.set(len/2,topStart+(wh-topStart)/2,wt/2); g.add(m); threeState.wallMeshes.push(m); }
+    let prev=0;
+    for (const w of sorted) {
+      if (w.x-prev>0.01) { const m=mesh(box(w.x-prev,topStart-botH,wt),M.wall); m.position.set(prev+(w.x-prev)/2,botH+(topStart-botH)/2,wt/2); g.add(m); threeState.wallMeshes.push(m); }
+      const gm=new THREE.Mesh(box(w.w,w.h,wt*0.3),M.glass); gm.position.set(w.x+w.w/2,w.y+w.h/2,wt/2); g.add(gm);
+      const ft=0.04, fd=wt+0.06;
+      [[w.w+ft*2,ft,fd,w.x+w.w/2,w.y+w.h+ft/2],[w.w+ft*2,ft,fd,w.x+w.w/2,w.y-ft/2],
+       [ft,w.h,fd,w.x-ft/2,w.y+w.h/2],[ft,w.h,fd,w.x+w.w+ft/2,w.y+w.h/2],
+       [w.w,ft*0.7,fd*0.7,w.x+w.w/2,w.y+w.h/2],[ft*0.7,w.h,fd*0.7,w.x+w.w/2,w.y+w.h/2]
+      ].forEach(([sx,sy,sz,px,py])=>{ const m=new THREE.Mesh(box(sx,sy,sz),M.frame); m.position.set(px,py,wt/2); g.add(m); });
+      prev=w.x+w.w;
+    }
+    if (len-prev>0.01) { const m=mesh(box(len-prev,topStart-botH,wt),M.wall); m.position.set(prev+(len-prev)/2,botH+(topStart-botH)/2,wt/2); g.add(m); threeState.wallMeshes.push(m); }
+    return g;
+  }
+
+  function zWallWithDoor(zLen, hasDoor, hasWins) {
+    const g = new THREE.Group();
+    const holes = [];
+    if (hasDoor) { const dz = zLen/2 - WDOOR/2; holes.push({z:dz,y:0,w:WDOOR,h:HDOOR,isDoor:true}); }
+    if (hasWins) {
+      const dz = zLen/2 - WDOOR/2;
+      const leftC = (dz - 0.3) / 2 - WWIN/2;
+      if (leftC >= 0.1) holes.push({z:leftC, y:YWIN, w:WWIN, h:HWIN});
+      const rightC = (dz+WDOOR+0.3 + zLen)/2 - WWIN/2;
+      if (rightC+WWIN <= zLen-0.1) holes.push({z:rightC, y:YWIN, w:WWIN, h:HWIN});
+    }
+    if (!holes.length) { const m=mesh(box(wt,wh,zLen),M.wall); m.position.set(wt/2,wh/2,zLen/2); g.add(m); threeState.wallMeshes.push(m); return g; }
+    const sorted=[...holes].sort((a,b)=>a.z-b.z);
+    const topS = Math.max(...sorted.map(h=>h.y+h.h));
+    if (wh-topS>0.01){ const m=mesh(box(wt,wh-topS,zLen),M.wall); m.position.set(wt/2,topS+(wh-topS)/2,zLen/2); g.add(m); threeState.wallMeshes.push(m); }
+    let prev=0;
+    for (const h of sorted) {
+      if (h.z-prev>0.01){ const m=mesh(box(wt,topS,h.z-prev),M.wall); m.position.set(wt/2,topS/2,prev+(h.z-prev)/2); g.add(m); threeState.wallMeshes.push(m); }
+      if (h.y>0.01){ const m=mesh(box(wt,h.y,h.w),M.wall); m.position.set(wt/2,h.y/2,h.z+h.w/2); g.add(m); threeState.wallMeshes.push(m); }
+      const fillerH=topS-(h.y+h.h);
+      if (fillerH>0.01){ const m=mesh(box(wt,fillerH,h.w),M.wall); m.position.set(wt/2,(h.y+h.h)+fillerH/2,h.z+h.w/2); g.add(m); threeState.wallMeshes.push(m); }
+      const fm=new THREE.Mesh(box(wt*0.3,h.h,h.w), h.isDoor?M.door:M.glass);
+      fm.position.set(wt/2,h.y+h.h/2,h.z+h.w/2); g.add(fm);
+      const ft=0.04,fd=wt+0.08;
+      if (!h.isDoor) {
+        [[fd,ft,h.w+ft*2,wt/2,h.y+h.h+ft/2,h.z+h.w/2],[fd,ft,h.w+ft*2,wt/2,h.y-ft/2,h.z+h.w/2],
+         [fd,h.h,ft,wt/2,h.y+h.h/2,h.z-ft/2],[fd,h.h,ft,wt/2,h.y+h.h/2,h.z+h.w+ft/2],
+         [fd*0.7,ft*0.7,h.w,wt/2,h.y+h.h/2,h.z+h.w/2],[fd*0.7,h.h,ft*0.7,wt/2,h.y+h.h/2,h.z+h.w/2]
+        ].forEach(([sx,sy,sz,px,py,pz])=>{ const m=new THREE.Mesh(box(sx,sy,sz),M.frame); m.position.set(px,py,pz); g.add(m); });
+      } else {
+        [[fd,ft,h.w+ft*2,wt/2,h.y+h.h+ft/2,h.z+h.w/2],[fd,h.h,ft,wt/2,h.y+h.h/2,h.z-ft/2],[fd,h.h,ft,wt/2,h.y+h.h/2,h.z+h.w+ft/2]
+        ].forEach(([sx,sy,sz,px,py,pz])=>{ const m=new THREE.Mesh(box(sx,sy,sz),M.frame); m.position.set(px,py,pz); g.add(m); });
+      }
+      prev=h.z+h.w;
+    }
+    if (zLen-prev>0.01){ const m=mesh(box(wt,topS,zLen-prev),M.wall); m.position.set(wt/2,topS/2,prev+(zLen-prev)/2); g.add(m); threeState.wallMeshes.push(m); }
+    return g;
+  }
+
+  const winCount = Math.max(0, Math.round(length / (WWIN * 2.9)));
+  const winIndent = winCount > 0 ? (length - winCount * WWIN) / (winCount + 1) : length;
+  const wins = [];
+  for (let i=0;i<winCount;i++) wins.push({x: winIndent + (WWIN + winIndent)*i, y:YWIN, w:WWIN, h:HWIN});
+
+  const lw = xWallWithWins(length, wins); lw.position.set(0, bh, 0); parent.add(lw);
+  const rw = xWallWithWins(length, wins); rw.position.set(0, bh, width - wt); parent.add(rw);
+  const zInner = width - wt*2;
+  const bk = zWallWithDoor(zInner, false, true); bk.position.set(0, bh, wt); parent.add(bk);
+  const fw = zWallWithDoor(zInner, true, true); fw.position.set(length-wt, bh, wt); parent.add(fw);
+
+  // Roof
+  const rh = 2.0, oh=0.3;
+  const x0=-oh, x1=length+oh, z0=-oh, z1=width+oh, zMid=width/2;
+  const yBase=bh+wh, yPeak=bh+wh+rh;
+  const verts = new Float32Array([
+    x0,yBase,z0, x1,yBase,z0, x1,yPeak,zMid,  x0,yBase,z0, x1,yPeak,zMid, x0,yPeak,zMid,
+    x0,yBase,z1, x0,yPeak,zMid, x1,yPeak,zMid, x0,yBase,z1, x1,yPeak,zMid, x1,yBase,z1,
+    x1,yBase,z0, x1,yBase,z1, x1,yPeak,zMid,
+    x0,yBase,z1, x0,yBase,z0, x0,yPeak,zMid,
+    x0,yBase,z0, x0,yBase,z1, x1,yBase,z1, x0,yBase,z0, x1,yBase,z1, x1,yBase,z0,
+  ]);
+  const roofGeo = new THREE.BufferGeometry();
+  roofGeo.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+  roofGeo.computeVertexNormals();
+  const roofMesh = new THREE.Mesh(roofGeo, M.roof);
+  roofMesh.castShadow = true;
+  parent.add(roofMesh);
+}
+
+// ══════════════════════════════════════════════
+// TERRACE BUILDER
+// ══════════════════════════════════════════════
+// Преобразование нормализованных точек (0..1 из canvas) в мировые координаты
+// Canvas: 16×16м сетка. Дом центрирован на canvas.
+// 3D: дом от (0, 0, 0) до (houseL, _, houseW).
+// Нужно: canvas-coord дома → 3D-coord дома (совпадение)
+function canvasToWorld(pts, houseL, houseW) {
+  const gridSize = GRID;
+  // Дом на canvas начинается в (centerX - houseL/2, centerY - houseW/2)
+  // В нормализованных: ((gridSize - houseL)/2 / gridSize, ...)
+  // В 3D дом начинается в (0, 0)
+  // Смещение: worldX = canvasX_meters - houseOffsetX_meters
+  const offsetX = (gridSize - houseL) / 2;
+  const offsetZ = (gridSize - houseW) / 2;
+  return pts.map(p => ({
+    x: p.x * gridSize - offsetX,  // относительно начала дома
+    z: p.y * gridSize - offsetZ   // canvas Y → world Z
+  }));
+}
+
+function buildTerrace3d(parent, M, pts, deckHeight, houseL, houseW, meshArrayName) {
+  if (pts.length < 3) return;
+  const trackArray = meshArrayName || 'deckMeshes';
+
+  const box = (sx, sy, sz) => new THREE.BoxGeometry(sx, sy, sz);
+  const mesh = (geo, mat) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; return m; };
+
+  const worldPts = canvasToWorld(pts, houseL, houseW);
+
+  // Bounding box
+  const minX = Math.min(...worldPts.map(p=>p.x));
+  const maxX = Math.max(...worldPts.map(p=>p.x));
+  const minZ = Math.min(...worldPts.map(p=>p.z));
+  const maxZ = Math.max(...worldPts.map(p=>p.z));
+  const spanX = maxX - minX;
+  const spanZ = maxZ - minZ;
+
+  if (spanX < 0.3 || spanZ < 0.3) return; // слишком маленькая
+
+  // Проверка точки внутри полигона (ray casting)
+  function pointInPoly(px, pz) {
+    let inside = false;
+    for (let i=0, j=worldPts.length-1; i<worldPts.length; j=i++) {
+      const xi=worldPts[i].x, zi=worldPts[i].z;
+      const xj=worldPts[j].x, zj=worldPts[j].z;
+      if ((zi > pz) !== (zj > pz) && px < (xj-xi)*(pz-zi)/(zj-zi)+xi) inside = !inside;
+    }
+    return inside;
+  }
+
+  const boardW = 0.14;   // ширина доски 140мм
+  const boardH = 0.022;  // толщина 22мм
+  const gap    = 0.005;  // зазор 5мм
+  const joistH = 0.05;   // высота лаги
+  const joistW = 0.05;   // ширина лаги
+  const joistStep = 0.4; // шаг лаг
+  const postW  = 0.08;   // сечение опоры
+  const postStep = 1.0;  // шаг опор
+
+  const deckY = deckHeight;          // верх настила
+  const boardBot = deckY - boardH;   // низ доски
+  const joistBot = boardBot - joistH;// низ лаги
+
+  const terraceGroup = new THREE.Group();
+
+  // ── ОПОРЫ (posts) ──
+  for (let px = minX + postStep/2; px <= maxX; px += postStep) {
+    for (let pz = minZ + postStep/2; pz <= maxZ; pz += postStep) {
+      if (!pointInPoly(px, pz)) continue;
+      const ph = joistBot; // от земли до низа лаг
+      if (ph < 0.05) continue;
+      const post = mesh(box(postW, ph, postW), M.post);
+      post.position.set(px, ph/2, pz);
+      terraceGroup.add(post);
+    }
+  }
+
+  // ── ЛАГИ (joists) — вдоль X ──
+  for (let jz = minZ + joistStep/2; jz <= maxZ; jz += joistStep) {
+    // Найти пересечения линии z=jz с полигоном
+    const intersections = [];
+    for (let i=0, j=worldPts.length-1; i<worldPts.length; j=i++) {
+      const z1=worldPts[j].z, z2=worldPts[i].z;
+      const x1=worldPts[j].x, x2=worldPts[i].x;
+      if ((z1<=jz && z2>jz) || (z2<=jz && z1>jz)) {
+        const t = (jz - z1) / (z2 - z1);
+        intersections.push(x1 + t*(x2-x1));
+      }
+    }
+    intersections.sort((a,b)=>a-b);
+    // Рисуем лаги между парами пересечений
+    for (let k=0; k<intersections.length-1; k+=2) {
+      const x1 = intersections[k], x2 = intersections[k+1];
+      const len = x2 - x1;
+      if (len < 0.1) continue;
+      const j = mesh(box(len, joistH, joistW), M.joist);
+      j.position.set(x1 + len/2, joistBot + joistH/2, jz);
+      terraceGroup.add(j);
+    }
+  }
+
+  // ── ДОСКИ (boards) — вдоль Z ──
+  for (let bx = minX + boardW/2; bx <= maxX; bx += boardW + gap) {
+    // Найти пересечения линии x=bx с полигоном
+    const intersections = [];
+    for (let i=0, j=worldPts.length-1; i<worldPts.length; j=i++) {
+      const x1=worldPts[j].x, x2=worldPts[i].x;
+      const z1=worldPts[j].z, z2=worldPts[i].z;
+      if ((x1<=bx && x2>bx) || (x2<=bx && x1>bx)) {
+        const t = (bx - x1) / (x2 - x1);
+        intersections.push(z1 + t*(z2-z1));
+      }
+    }
+    intersections.sort((a,b)=>a-b);
+    for (let k=0; k<intersections.length-1; k+=2) {
+      const z1 = intersections[k], z2 = intersections[k+1];
+      const len = z2 - z1;
+      if (len < 0.05) continue;
+      const b = mesh(box(boardW, boardH, len), M.deck);
+      b.position.set(bx, boardBot + boardH/2, z1 + len/2);
+      terraceGroup.add(b);
+      threeState[trackArray].push(b);
+    }
+  }
+
+  parent.add(terraceGroup);
+}
+
+// ══════════════════════════════════════════════
+// PORCH BUILDER
+// ══════════════════════════════════════════════
+function buildPorch3d(parent, M, porch, houseL, houseW, bh) {
+  const box = (sx, sy, sz) => new THREE.BoxGeometry(sx, sy, sz);
+  const mesh = (geo, mat) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; return m; };
+
+  const gridSize = GRID;
+  const offsetX = (gridSize - houseL) / 2;
+  const offsetZ = (gridSize - houseW) / 2;
+
+  // Крыльцо в мировых координатах (та же система, что canvasToWorld)
+  const px = porch.x * gridSize - offsetX;
+  const pz = porch.y * gridSize - offsetZ;
+  const pw = porch.w * gridSize;
+  const pd = porch.h * gridSize;
+
+  if (pw < 0.2 || pd < 0.2) return;
+
+  const porchGroup = new THREE.Group();
+
+  // Определяем направление ступеней: от ближайшей стены дома наружу
+  // Дом в 3D: X от 0 до houseL, Z от 0 до houseW
+  // Центр крыльца
+  const cx = px + pw/2;
+  const cz = pz + pd/2;
+
+  // Расстояние до каждой стены дома
+  const distFront = Math.abs(cz - houseW);  // передняя стена (Z = houseW)
+  const distBack  = Math.abs(cz);           // задняя стена (Z = 0)
+  const distRight = Math.abs(cx - houseL);  // правая стена (X = houseL)
+  const distLeft  = Math.abs(cx);           // левая стена (X = 0)
+  const minDist = Math.min(distFront, distBack, distRight, distLeft);
+
+  // Направление ступеней (dx, dz) — от дома наружу
+  let stepDirX = 0, stepDirZ = 0;
+  if (minDist === distFront) stepDirZ = 1;      // ступени идут в +Z
+  else if (minDist === distBack) stepDirZ = -1;  // ступени идут в -Z
+  else if (minDist === distRight) stepDirX = 1;  // ступени идут в +X
+  else stepDirX = -1;                            // ступени идут в -X
+
+  // Параметры ступеней
+  const stepH = 0.17;
+  const stepD = 0.28;
+  const boardH = 0.022;
+  const nSteps = Math.max(1, Math.round(bh / stepH));
+  const actualStepH = bh / nSteps;
+
+  // ── ПЛОЩАДКА — доски ──
+  const boardW = 0.14;
+  const gap = 0.005;
+
+  // Доски на площадке: всегда перпендикулярны ступеням
+  if (stepDirZ !== 0) {
+    // Ступени идут по Z → доски идут по X
+    for (let bx = px + boardW/2; bx <= px + pw; bx += boardW + gap) {
+      const b = mesh(box(boardW, boardH, pd), M.deck);
+      b.position.set(bx, bh - boardH/2, pz + pd/2);
+      porchGroup.add(b);
+      threeState.porchMeshes.push(b);
+    }
+  } else {
+    // Ступени идут по X → доски идут по Z
+    for (let bz = pz + boardW/2; bz <= pz + pd; bz += boardW + gap) {
+      const b = mesh(box(pw, boardH, boardW), M.deck);
+      b.position.set(px + pw/2, bh - boardH/2, bz);
+      porchGroup.add(b);
+      threeState.porchMeshes.push(b);
+    }
+  }
+
+  // ── СТУПЕНИ — спускаются от площадки к земле ──
+  for (let i = 0; i < nSteps; i++) {
+    const sy = actualStepH;
+    const yBot = bh - (i+1) * actualStepH; // сверху вниз
+    let sx, sz, sxPos, szPos;
+
+    if (stepDirZ !== 0) {
+      // Ступени по оси Z
+      sx = pw; sz = stepD;
+      sxPos = px + pw/2;
+      szPos = stepDirZ > 0
+        ? (pz + pd + i * stepD + stepD/2)    // вперёд от площадки
+        : (pz - i * stepD - stepD/2);         // назад от площадки
+    } else {
+      // Ступени по оси X
+      sx = stepD; sz = pd;
+      szPos = pz + pd/2;
+      sxPos = stepDirX > 0
+        ? (px + pw + i * stepD + stepD/2)
+        : (px - i * stepD - stepD/2);
+    }
+
+    const s = mesh(box(sx, sy, sz), M.step);
+    s.position.set(sxPos, yBot + sy/2, szPos);
+    porchGroup.add(s);
+    threeState.stepMeshes.push(s);
+  }
+
+  // ── Боковые стенки ──
+  const sideW = 0.06;
+  if (stepDirZ !== 0) {
+    const ls = mesh(box(sideW, bh, pd), M.base);
+    ls.position.set(px, bh/2, pz + pd/2);
+    porchGroup.add(ls);
+    const rs = mesh(box(sideW, bh, pd), M.base);
+    rs.position.set(px + pw, bh/2, pz + pd/2);
+    porchGroup.add(rs);
+  } else {
+    const ls = mesh(box(pw, bh, sideW), M.base);
+    ls.position.set(px + pw/2, bh/2, pz);
+    porchGroup.add(ls);
+    const rs = mesh(box(pw, bh, sideW), M.base);
+    rs.position.set(px + pw/2, bh/2, pz + pd);
+    porchGroup.add(rs);
+  }
+
+  parent.add(porchGroup);
+}
+
+// ══════════════════════════════════════════════
+// PATHS BUILDER (дорожки)
+// ══════════════════════════════════════════════
+function buildPaths3d(parent, M, pts, houseL, houseW) {
+  if (pts.length < 2) return;
+  const worldPts = canvasToWorld(pts, houseL, houseW);
+  const pathWidthCm = parseFloat(document.getElementById('v-paths-width')?.value || 120);
+  const pathW = pathWidthCm / 100;
+  const boardW = 0.14, boardH = 0.022, gap = 0.005;
+  const pathGroup = new THREE.Group();
+  const box = (sx, sy, sz) => new THREE.BoxGeometry(sx, sy, sz);
+  const meshFn = (geo, mat) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; return m; };
+
+  for (let i = 0; i < worldPts.length - 1; i++) {
+    const a = worldPts[i], b = worldPts[i+1];
+    const dx = b.x - a.x, dz = b.z - a.z;
+    const segLen = Math.sqrt(dx*dx + dz*dz);
+    if (segLen < 0.1) continue;
+    const angle = Math.atan2(dx, dz);
+    // Доски перпендикулярно направлению дорожки
+    for (let d = boardW/2; d < segLen; d += boardW + gap) {
+      const t = d / segLen;
+      const bx = a.x + dx*t, bz = a.z + dz*t;
+      const bd = meshFn(box(pathW, boardH, boardW), M.deck);
+      bd.position.set(bx, boardH/2, bz);
+      bd.rotation.y = angle;
+      pathGroup.add(bd);
+      threeState.deckMeshes.push(bd);
+    }
+  }
+  parent.add(pathGroup);
+}
+
+// ══════════════════════════════════════════════
+// FENCE BUILDER (забор)
+// ══════════════════════════════════════════════
+function buildFence3d(parent, M, pts, houseL, houseW) {
+  if (pts.length < 2) return;
+  const worldPts = canvasToWorld(pts, houseL, houseW);
+  const fenceH = 1.8, postW = 0.1, postH = fenceH + 0.2;
+  const boardW = 0.12, boardH = fenceH - 0.2, boardT = 0.02;
+  const fenceGroup = new THREE.Group();
+  const box = (sx, sy, sz) => new THREE.BoxGeometry(sx, sy, sz);
+  const meshFn = (geo, mat) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; return m; };
+  const fenceMat = new THREE.MeshStandardMaterial({ color: 0x8B7355, roughness: 0.80, metalness: 0.05 });
+
+  for (let i = 0; i < worldPts.length; i++) {
+    // Столб
+    const p = worldPts[i];
+    const post = meshFn(box(postW, postH, postW), M.post);
+    post.position.set(p.x, postH/2, p.z);
+    fenceGroup.add(post);
+
+    // Секция забора до следующего столба
+    if (i < worldPts.length - 1) {
+      const a = worldPts[i], b = worldPts[i+1];
+      const dx = b.x - a.x, dz = b.z - a.z;
+      const segLen = Math.sqrt(dx*dx + dz*dz);
+      if (segLen < 0.2) continue;
+      const angle = Math.atan2(dx, dz);
+      const mx = (a.x + b.x)/2, mz = (a.z + b.z)/2;
+      const panel = meshFn(box(boardT, boardH, segLen - postW), fenceMat);
+      panel.position.set(mx, 0.2 + boardH/2, mz);
+      panel.rotation.y = angle;
+      fenceGroup.add(panel);
+      threeState.fenceMeshes.push(panel);
+    }
+  }
+  // Замыкающая секция если 3+ точек
+  if (worldPts.length >= 3) {
+    const a = worldPts[worldPts.length-1], b = worldPts[0];
+    const dx = b.x - a.x, dz = b.z - a.z;
+    const segLen = Math.sqrt(dx*dx + dz*dz);
+    if (segLen > 0.2) {
+      const angle = Math.atan2(dx, dz);
+      const mx = (a.x + b.x)/2, mz = (a.z + b.z)/2;
+      const panel = meshFn(box(boardT, boardH, segLen - postW), fenceMat);
+      panel.position.set(mx, 0.2 + boardH/2, mz);
+      panel.rotation.y = angle;
+      fenceGroup.add(panel);
+      threeState.fenceMeshes.push(panel);
+    }
+  }
+  parent.add(fenceGroup);
+}
+
+// ══════════════════════════════════════════════
+// RAILING BUILDER (ограждение террасы)
+// ══════════════════════════════════════════════
+function buildRailing3d(parent, M, pts, deckHeight, houseL, houseW) {
+  if (pts.length < 3) return;
+  const worldPts = canvasToWorld(pts, houseL, houseW);
+  const railH = 1.0, railW = 0.05, postW = 0.06;
+  const railGroup = new THREE.Group();
+  const box = (sx, sy, sz) => new THREE.BoxGeometry(sx, sy, sz);
+  const meshFn = (geo, mat) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; return m; };
+  const railMat = new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.60, metalness: 0.3 });
+
+  for (let i = 0; i < worldPts.length; i++) {
+    const p = worldPts[i];
+    // Стойка
+    const post = meshFn(box(postW, railH, postW), railMat);
+    post.position.set(p.x, deckHeight + railH/2, p.z);
+    railGroup.add(post);
+    threeState.railingMeshes.push(post);
+
+    // Перекладина до следующей точки
+    const next = worldPts[(i+1) % worldPts.length];
+    const dx = next.x - p.x, dz = next.z - p.z;
+    const segLen = Math.sqrt(dx*dx + dz*dz);
+    if (segLen < 0.2) continue;
+    const angle = Math.atan2(dx, dz);
+    const mx = (p.x + next.x)/2, mz = (p.z + next.z)/2;
+    // Верхняя перекладина
+    const top = meshFn(box(railW, railW, segLen), railMat);
+    top.position.set(mx, deckHeight + railH, mz);
+    top.rotation.y = angle;
+    railGroup.add(top);
+    // Средняя перекладина
+    const mid = meshFn(box(railW, railW, segLen), railMat);
+    mid.position.set(mx, deckHeight + railH * 0.5, mz);
+    mid.rotation.y = angle;
+    railGroup.add(mid);
+    threeState.railingMeshes.push(top, mid);
+  }
+  parent.add(railGroup);
+}
+
+// ══════════════════════════════════════════════
+// MATERIAL APPLICATION (примерка)
+// ══════════════════════════════════════════════
+function applyMaterialToScene(colorHex) {
+  if (!threeState || !colorHex) return;
+  const c = new THREE.Color(colorHex);
+
+  // Определяем текущую секцию
+  const sec = getActive()[S.curSec];
+  const secId = sec ? sec.id : 'terrace';
+
+  let targetMeshes = [];
+  let roughness = 0.72;
+
+  if (secId === 'facade') {
+    targetMeshes = threeState.wallMeshes || [];
+    roughness = 0.85;
+  } else if (secId === 'porch') {
+    targetMeshes = threeState.stepMeshes || [];
+    roughness = 0.80;
+  } else if (secId === 'fence') {
+    targetMeshes = threeState.fenceMeshes || [];
+    roughness = 0.80;
+  } else if (secId === 'railing') {
+    targetMeshes = threeState.railingMeshes || [];
+    roughness = 0.60;
+  } else {
+    // terrace, pool_terrace, pier, paths, beds, furniture → доски настила
+    targetMeshes = [...(threeState.deckMeshes||[]), ...(threeState.porchMeshes||[])];
+  }
+
+  if (targetMeshes.length === 0) {
+    buildScene3d();
+    return;
+  }
+
+  const newMat = new THREE.MeshStandardMaterial({ color: c, roughness, metalness: 0.02 });
+  targetMeshes.forEach(m => {
+    if (m.material) m.material.dispose();
+    m.material = newMat;
+  });
+}
+
+function rot(dir) { /* orbit controls handle rotation, kept for compat */ }
+
+// ══════════════════════════════════════════════
+// СЕКЦИИ МАТЕРИАЛОВ (ШАГ 10)
+// ══════════════════════════════════════════════
+function getActive() {
+  return SECS.filter(s => S.sections.length===0 || S.sections.includes(s.req));
+}
+function renderSec() {
+  const active=getActive(); if (!active.length) return;
+  if (S.curSec>=active.length) S.curSec=0;
+  const sec=active[S.curSec];
+  document.getElementById('sec-title').textContent=sec.lbl;
+  document.getElementById('sec-nav').innerHTML=active.map((s,i)=>
+    `<div class="sec-tab ${i===S.curSec?'active':''}" onclick="switchSec(${i})">${s.lbl}</div>`
+  ).join('');
+  renderSwatches();
+}
+function renderSwatches() {
+  const grid = document.getElementById('samples-grid');
+  const lbl  = document.getElementById('sample-lbl');
+  const all  = S.samples; // массив {id, name, color}
+  if (!all || !all.length) {
+    grid.innerHTML = '<span class="samples-empty">Добавьте образцы из каталога</span>';
+    lbl.textContent = 'Образцы:';
+    return;
+  }
+  lbl.textContent = `Образцы (${all.length}):`;
+  grid.innerHTML = all.map((s,i) => `
+    <div class="swatch ${S.activeSample && S.activeSample.id===s.id && S.activeSample._idx===i ? 'swatch-active':''}"
+         title="${s.name}" onclick="applySwatch(${i})"
+         style="background:${s.color || '#d9d9d9'}; cursor:pointer;">
+      <button class="swatch-del" onclick="event.stopPropagation(); removeSwatch(${i})">✕</button>
+      <span class="swatch-name" style="color:${isLightColor(s.color)?'#333':'#fff'}">${s.name}</span>
+    </div>`).join('');
+}
+
+function isLightColor(hex) {
+  if (!hex) return true;
+  const c = hex.replace('#','');
+  const r = parseInt(c.substr(0,2),16), g = parseInt(c.substr(2,2),16), b = parseInt(c.substr(4,2),16);
+  return (r*0.299 + g*0.587 + b*0.114) > 150;
+}
+
+function applySwatch(idx) {
+  const s = S.samples[idx];
+  if (!s || !s.color) return;
+  S.activeSample = { ...s, _idx: idx };
+
+  // Применяем цвет к mesh'ам текущей секции
+  if (threeState) {
+    applyMaterialToScene(s.color);
+  }
+
+  // Обновляем UI (подсветка активного)
+  renderSwatches();
+}
+function removeSwatch(i) {
+  S.samples.splice(i,1);
+  renderSwatches();
+}
+function switchSec(i) { S.curSec=i; renderSec(); }
+
+// ══════════════════════════════════════════════
+// КАТАЛОГ — ФИЛЬТРЫ И РЕЗУЛЬТАТЫ
+// ══════════════════════════════════════════════
+function openCatalog() {
+  S.catShowResults=false;
+  S.catColors=new Set(); S.catPrice=null;
+  document.getElementById('screen-'+step).classList.remove('active');
+  step='catalog';
+  document.getElementById('screen-catalog').classList.add('active');
+  // Кнопка назад всегда возвращает к шагу 10
+  document.getElementById('cat-back-btn').onclick = () => goTo(10);
+  renderCatalogFilters();
+  document.getElementById('plbl').textContent='Каталог';
+}
+
+function renderCatalogFilters() {
+  S.catShowResults=false;
+  document.getElementById('cat-title').textContent='Террасная доска';
+  document.getElementById('cat-action-btn').textContent='ПОДОБРАТЬ →';
+  document.getElementById('cat-action-btn').onclick=showCatalogResults;
+  document.getElementById('cat-back-btn').onclick = () => goTo(10);
+
+  document.getElementById('cat-body').innerHTML=`
+    <div class="filter-section">
+      <div class="filter-title">Цвет (можно несколько):</div>
+      <div class="color-grid" id="color-grid">
+        ${CATALOG_COLORS.map(c=>`
+          <div class="color-dot" id="cd-${c.id}" title="${c.label}"
+               style="background:${c.hex};"
+               onclick="toggleColor('${c.id}')"></div>`).join('')}
+      </div>
+    </div>
+    <div class="filter-divider"></div>
+    <div class="filter-section">
+      <div class="filter-title">Ценовой диапазон:</div>
+      <div class="price-btns" id="price-btns">
+        ${PRICE_TIERS.map(t=>`
+          <button class="price-btn" id="pb-${t.id}" onclick="selectPrice('${t.id}')">
+            ${t.lbl}<br><span style="font-size:11px;font-weight:400;opacity:.7">${t.sub}</span>
+          </button>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function toggleColor(cid) {
+  if (S.catColors.has(cid)) S.catColors.delete(cid);
+  else S.catColors.add(cid);
+  document.querySelectorAll('.color-dot').forEach(el => {
+    el.classList.toggle('selected', S.catColors.has(el.id.replace('cd-','')));
+  });
+}
+
+function selectPrice(tid) {
+  S.catPrice = S.catPrice===tid ? null : tid;
+  document.querySelectorAll('.price-btn').forEach(el =>
+    el.classList.toggle('selected', el.id==='pb-'+S.catPrice));
+}
+
+function showCatalogResults() {
+  let results = [...STUB_RESULTS];
+
+  if (S.catPrice === 'budget')        results = results.filter(r => r.id === 4);
+  else if (S.catPrice === 'balanced') results = results.filter(r => [1,4].includes(r.id));
+  else if (S.catPrice === 'premium')  results = results.filter(r => [2,3].includes(r.id));
+  else if (S.catPrice === 'mpk')      results = [{
+    id:99,
+    name:'Deckron МПК Классик 145×22',
+    short:'Массив прессованного кедра, премиум',
+    detail:'Массив прессованного кедра (МПК) — натуральный кедр под давлением 800 атм. Плотность выше дуба. Не гниёт, не трескается, не требует обработки. Цвет сохраняется 30+ лет. Срок службы не ограничен.',
+    price:'от 10 000 ₽/м²',
+    color:'#A0522D',
+    url:'https://outdoor-mebel.ru/catalog/terrasnaya_doska_iz_dpk/doska_dpk_universalnaya/deckron',
+  }];
+
+  S.catShowResults = true;
+  document.getElementById('cat-title').textContent = `Результаты (${results.length})`;
+  // Кнопка действия теперь ведёт к примерке
+  document.getElementById('cat-action-btn').textContent = 'К ПРИМЕРКЕ →';
+  document.getElementById('cat-action-btn').onclick = () => goTo(10);
+  // Кнопка назад возвращает к фильтрам
+  document.getElementById('cat-back-btn').onclick = () => {
+    renderCatalogFilters();
+    document.getElementById('cat-action-btn').textContent = 'ПОДОБРАТЬ →';
+    document.getElementById('cat-action-btn').onclick = showCatalogResults;
+    document.getElementById('cat-back-btn').onclick = () => goTo(10);
+  };
+
+  document.getElementById('cat-body').innerHTML = `
+    <div class="cat-results">
+      ${results.map(m => `
+        <div class="mat-card" id="mc-${m.id}">
+          <div class="mat-head" onclick="toggleCard(${m.id})">
+            <div class="mat-thumb" style="background:${m.color||'#bbb'}"></div>
+            <div class="mat-hi">
+              <div class="mat-name">${m.name}</div>
+              <div class="mat-short">${m.short}</div>
+              <div style="font-size:13px;font-weight:700;margin-top:4px;color:#333">${m.price}</div>
+            </div>
+            <button class="mat-exp">▼</button>
+          </div>
+          <div class="mat-body"><div class="mat-bi">
+            <div class="mat-det">${m.detail}</div>
+            <div class="mat-acts">
+              <button class="btn-smp" onclick="selMat(event,${m.id},'${m.name.replace(/'/g,"\\'")}','${m.color||'#C8A96E'}')">+ В образцы</button>
+            </div>
+            <a href="${m.url}" target="_blank"
+               style="display:block;margin-top:10px;font-size:12px;color:#555;text-decoration:underline;">
+              Подробнее на outdoor-mebel.ru ↗
+            </a>
+          </div></div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function toggleCard(mid) {
+  const el=document.getElementById('mc-'+mid);
+  const was=el.classList.contains('open');
+  document.querySelectorAll('.mat-card.open').forEach(c=>c.classList.remove('open'));
+  if (!was) el.classList.add('open');
+}
+function selMat(e, mid, name, color) {
+  // Добавляем образец с цветом
+  S.samples.push({id: mid, name, color});
+  // Визуальная обратная связь: кнопка мигает
+  const btn = e.currentTarget;
+  const orig = btn.textContent;
+  btn.textContent = '✓ Добавлено';
+  btn.style.background = '#444';
+  setTimeout(()=>{ btn.textContent = orig; btn.style.background = '#000'; }, 800);
+}
+
+// ══════════════════════════════════════════════
+// ИТОГ
+// ══════════════════════════════════════════════
+function showSummary() {
+  const rows=[
+    ['Тип дома', S.houseType||'не выбран'],
+    ['Площадь', (document.getElementById('v-area')?.value||'—')+' кв.м'],
+    ['Высота этажа', (document.getElementById('v-floor')?.value||'—')+' см'],
+    ['Фундамент', (document.getElementById('v-found')?.value||'—')+' см'],
+    ['Что строим', S.sections.length?S.sections.map(s=>SECS.find(x=>x.id===s)?.lbl||s).join(', '):'не выбрано'],
+    ...Object.entries(S.mats).map(([k,v])=>[SECS.find(s=>s.id===k)?.lbl||k, v.name]),
+  ];
+  document.getElementById('sum-body').innerHTML=rows.map(([k,v])=>
+    `<div class="sum-row"><span class="sum-k">${k}</span><span class="sum-v">${v}</span></div>`
+  ).join('');
+  const prev=document.getElementById('screen-'+step);
+  if (prev) prev.classList.remove('active');
+  step='summary';
+  document.getElementById('screen-summary').classList.add('active');
+  document.getElementById('pfill').style.width='100%';
+  document.getElementById('plbl').textContent='Готово!';
+}
+
+// Resize Three.js when app window size changes
+window.addEventListener('resize', () => { resizeThree(); });
+</script>
+</body>
+</html>
