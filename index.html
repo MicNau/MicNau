@@ -285,16 +285,14 @@ body { font-family:'Roboto',sans-serif; background:#e0e0e0; display:flex; justif
     <div class="sb">
       <div class="checklist">
         <div class="ci" onclick="tci(this)" data-id="terrace"><span class="ci-text">Терраса</span><div class="cb"></div></div>
-        <!-- НОВЫЕ пункты -->
-        <div class="ci" onclick="tci(this)" data-id="pool_terrace"><span class="ci-text">Терраса у бассейна</span><div class="cb"></div></div>
-        <div class="ci" onclick="tci(this)" data-id="paths"><span class="ci-text">Дорожки</span><div class="cb"></div></div>
-        <div class="ci" onclick="tci(this)" data-id="pier"><span class="ci-text">Причал</span><div class="cb"></div></div>
         <div class="ci" onclick="tci(this)" data-id="porch"><span class="ci-text">Крыльцо</span><div class="cb"></div></div>
-        <div class="ci" onclick="tci(this)" data-id="railing"><span class="ci-text">Ограждение террасы</span><div class="cb"></div></div>
+        <div class="ci" onclick="tci(this)" data-id="paths"><span class="ci-text">Дорожки</span><div class="cb"></div></div>
         <div class="ci" onclick="tci(this)" data-id="fence"><span class="ci-text">Забор вокруг участка</span><div class="cb"></div></div>
         <div class="ci" onclick="tci(this)" data-id="facade"><span class="ci-text">Отделка фасада</span><div class="cb"></div></div>
         <div class="ci" onclick="tci(this)" data-id="beds"><span class="ci-text">Грядки</span><div class="cb"></div></div>
         <div class="ci" onclick="tci(this)" data-id="furniture"><span class="ci-text">Садовая мебель</span><div class="cb"></div></div>
+        <div class="ci" onclick="tci(this)" data-id="pool_terrace"><span class="ci-text">Терраса у бассейна</span><div class="cb"></div></div>
+        <div class="ci" onclick="tci(this)" data-id="pier"><span class="ci-text">Причал</span><div class="cb"></div></div>
       </div>
     </div>
     <div class="nav-row">
@@ -313,8 +311,8 @@ body { font-family:'Roboto',sans-serif; background:#e0e0e0; display:flex; justif
         <button class="btn-u" onclick="undoPt('terrace')">↩ Отменить</button>
         <button class="btn-c" onclick="clrPts('terrace')">✕ Очистить</button>
       </div>
-      <div class="tg" onclick="ttg(this)"><span class="tg-txt">Нужно ограждение</span><div class="tg-ind"></div></div>
-      <div class="tg" onclick="ttg(this)"><span class="tg-txt">Нужен навес</span><div class="tg-ind"></div></div>
+      <div class="tg" onclick="ttg(this)" data-id="terrace-railing"><span class="tg-txt">Нужно ограждение</span><div class="tg-ind"></div></div>
+      <div class="tg" onclick="ttg(this)" data-id="terrace-roof"><span class="tg-txt">Нужен навес</span><div class="tg-ind"></div></div>
     </div>
     <div class="nav-row">
       <button class="btn-back" onclick="goTo(5)">←</button>
@@ -463,15 +461,14 @@ body { font-family:'Roboto',sans-serif; background:#e0e0e0; display:flex; justif
 // ══════════════════════════════════════════════
 const SECS = [
   {id:'terrace',      lbl:'Терраса',           req:'terrace'},
-  {id:'pool_terrace', lbl:'Терраса у бассейна', req:'pool_terrace'},
-  {id:'paths',        lbl:'Дорожки',            req:'paths'},
-  {id:'pier',         lbl:'Причал',             req:'pier'},
   {id:'porch',        lbl:'Крыльцо',            req:'porch'},
-  {id:'railing',      lbl:'Ограждение',         req:'railing'},
+  {id:'paths',        lbl:'Дорожки',            req:'paths'},
   {id:'fence',        lbl:'Забор',              req:'fence'},
   {id:'facade',       lbl:'Фасад',              req:'facade'},
   {id:'beds',         lbl:'Грядки',             req:'beds'},
   {id:'furniture',    lbl:'Мебель',             req:'furniture'},
+  {id:'pool_terrace', lbl:'Терраса у бассейна', req:'pool_terrace'},
+  {id:'pier',         lbl:'Причал',             req:'pier'},
 ];
 
 // Порядок шагов конфигурации (до шага 10)
@@ -607,7 +604,7 @@ function updProg() {
 
 // Возвращает упорядоченный список активных шагов-экранов (id секций имеющих экран)
 function getStepOrder() {
-  const order = ['terrace','pool_terrace','paths','pier','porch','fence'];
+  const order = ['terrace','porch','paths','fence','pool_terrace','pier'];
   return order.filter(id => S.sections.includes(id));
 }
 
@@ -729,12 +726,11 @@ function initSnapCanvas(name) {
   cv.style.width=sz+'px'; cv.style.height=sz+'px';
   CV[name]=mkCvState();
 
-  // Если есть терраса и это крыльцо — покажем террасу в фоне
-  // (для pool_terrace/pier/paths фон нейтральный)
-  drawSnapCanvas(name);
-
   const newCv=cv.cloneNode(true); wrap.replaceChild(newCv, cv);
   attachPanZoom(wrap, name, ()=>drawSnapCanvas(name));
+
+  // Рисуем ПОСЛЕ замены canvas (иначе clone стирает рисунок)
+  drawSnapCanvas(name);
 
   // Клик — добавить точку с snap
   wrap.addEventListener('click', e=>{
@@ -840,8 +836,13 @@ function drawPreviousLayers(ctx, W, H, cx, excludeName) {
     }
   }
 
-  // 4. Крыльцо (если не текущий шаг)
-  if (excludeName !== 'porch' && S.sections.includes('porch')) {
+  // 4. Крыльцо (только если уже настроено — т.е. текущий шаг идёт ПОСЛЕ крыльца в порядке)
+  // Новый порядок: terrace → porch → paths → fence → pool_terrace → pier
+  const configOrder = ['terrace','porch','paths','fence','pool_terrace','pier'];
+  const porchOrdIdx = configOrder.indexOf('porch');
+  const curOrdIdx = configOrder.indexOf(excludeName);
+  const porchDone = (curOrdIdx >= 0 && porchOrdIdx >= 0 && curOrdIdx > porchOrdIdx);
+  if (excludeName !== 'porch' && S.sections.includes('porch') && porchDone) {
     const p = S.porch;
     const px=p.x*W, py=p.y*H, pw=p.w*W, ph=p.h*H;
     ctx.fillStyle='rgba(0,100,220,.10)'; ctx.fillRect(px,py,pw,ph);
@@ -943,8 +944,10 @@ function initPorchCanvas() {
   cv.width=sz*dpr; cv.height=sz*dpr;
   cv.style.width=sz+'px'; cv.style.height=sz+'px';
   CV['porch']=mkCvState();
-  drawPorchCanvas();
   const newCv=cv.cloneNode(true); wrap.replaceChild(newCv, cv);
+
+  // Рисуем ПОСЛЕ замены canvas
+  drawPorchCanvas();
 
   attachPorchEvents(wrap);
 }
@@ -1367,8 +1370,9 @@ function buildScene3d() {
     buildFence3d(houseGroup, M, S.pts.fence, houseL, houseW);
   }
 
-  // ── BUILD TERRACE RAILING (условно) ──
-  if (S.sections.includes('railing') && S.pts.terrace.length >= 3) {
+  // ── BUILD TERRACE RAILING (по тоглу «Нужно ограждение» на шаге террасы) ──
+  const terraceRailingOn = document.querySelector('.tg[data-id="terrace-railing"]')?.classList.contains('on');
+  if (terraceRailingOn && S.pts.terrace.length >= 3) {
     const terraceH = isNoHouse ? 0.35 : bh;
     buildRailing3d(houseGroup, M, S.pts.terrace, terraceH, houseL, houseW);
   }
@@ -1844,32 +1848,97 @@ function buildRailing3d(parent, M, pts, deckHeight, houseL, houseW) {
   const meshFn = (geo, mat) => { const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; return m; };
   const railMat = new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.60, metalness: 0.3 });
 
-  for (let i = 0; i < worldPts.length; i++) {
-    const p = worldPts[i];
-    // Стойка
-    const post = meshFn(box(postW, railH, postW), railMat);
-    post.position.set(p.x, deckHeight + railH/2, p.z);
-    railGroup.add(post);
-    threeState.railingMeshes.push(post);
+  // Зона крыльца в мировых координатах
+  let porchRect = null;
+  if (S.sections.includes('porch')) {
+    const gridSize = GRID;
+    const offsetX = (gridSize - houseL) / 2;
+    const offsetZ = (gridSize - houseW) / 2;
+    const p = S.porch;
+    const px1 = p.x * gridSize - offsetX;
+    const pz1 = p.y * gridSize - offsetZ;
+    const px2 = (p.x + p.w) * gridSize - offsetX;
+    const pz2 = (p.y + p.h) * gridSize - offsetZ;
+    porchRect = {
+      minX: Math.min(px1, px2), maxX: Math.max(px1, px2),
+      minZ: Math.min(pz1, pz2), maxZ: Math.max(pz1, pz2),
+    };
+  }
 
-    // Перекладина до следующей точки
+  // Разбивает отрезок A→B на подотрезки, вырезая пересечение с porchRect
+  function splitAroundPorch(ax, az, bx, bz) {
+    if (!porchRect) return [{ ax, az, bx, bz }];
+    const pr = porchRect;
+    const pad = 0.08;
+    const dx = bx - ax, dz = bz - az;
+    const len = Math.sqrt(dx*dx + dz*dz);
+    if (len < 0.01) return [{ ax, az, bx, bz }];
+
+    // Параметрический t ∈ [0,1]: P(t) = A + t·(B-A)
+    let tEnter = 0, tExit = 1;
+
+    if (Math.abs(dx) > 0.001) {
+      const t1 = (pr.minX - pad - ax) / dx;
+      const t2 = (pr.maxX + pad - ax) / dx;
+      tEnter = Math.max(tEnter, Math.min(t1, t2));
+      tExit  = Math.min(tExit,  Math.max(t1, t2));
+    } else if (ax < pr.minX - pad || ax > pr.maxX + pad) {
+      return [{ ax, az, bx, bz }]; // мимо по X
+    }
+
+    if (Math.abs(dz) > 0.001) {
+      const t1 = (pr.minZ - pad - az) / dz;
+      const t2 = (pr.maxZ + pad - az) / dz;
+      tEnter = Math.max(tEnter, Math.min(t1, t2));
+      tExit  = Math.min(tExit,  Math.max(t1, t2));
+    } else if (az < pr.minZ - pad || az > pr.maxZ + pad) {
+      return [{ ax, az, bx, bz }]; // мимо по Z
+    }
+
+    if (tEnter >= tExit || tExit <= 0 || tEnter >= 1) return [{ ax, az, bx, bz }];
+
+    const tc0 = Math.max(0, tEnter);
+    const tc1 = Math.min(1, tExit);
+    const result = [];
+    if (tc0 > 0.02)
+      result.push({ ax, az, bx: ax + dx*tc0, bz: az + dz*tc0 });
+    if (tc1 < 0.98)
+      result.push({ ax: ax + dx*tc1, az: az + dz*tc1, bx, bz });
+    return result;
+  }
+
+  // Рисует перила на подотрезке со столбиками на обоих концах
+  function drawRailSeg(a_x, a_z, b_x, b_z) {
+    const sdx = b_x - a_x, sdz = b_z - a_z;
+    const sLen = Math.sqrt(sdx*sdx + sdz*sdz);
+    if (sLen < 0.1) return;
+
+    // Столбики
+    for (const [px2, pz2] of [[a_x, a_z], [b_x, b_z]]) {
+      const p = meshFn(box(postW, railH, postW), railMat);
+      p.position.set(px2, deckHeight + railH/2, pz2);
+      railGroup.add(p);
+      threeState.railingMeshes.push(p);
+    }
+
+    const angle = Math.atan2(sdx, sdz);
+    const mx = (a_x + b_x)/2, mz = (a_z + b_z)/2;
+    for (const hFrac of [1.0, 0.5]) {
+      const bar = meshFn(box(railW, railW, sLen), railMat);
+      bar.position.set(mx, deckHeight + railH * hFrac, mz);
+      bar.rotation.y = angle;
+      railGroup.add(bar);
+      threeState.railingMeshes.push(bar);
+    }
+  }
+
+  for (let i = 0; i < worldPts.length; i++) {
+    const cur = worldPts[i];
     const next = worldPts[(i+1) % worldPts.length];
-    const dx = next.x - p.x, dz = next.z - p.z;
-    const segLen = Math.sqrt(dx*dx + dz*dz);
-    if (segLen < 0.2) continue;
-    const angle = Math.atan2(dx, dz);
-    const mx = (p.x + next.x)/2, mz = (p.z + next.z)/2;
-    // Верхняя перекладина
-    const top = meshFn(box(railW, railW, segLen), railMat);
-    top.position.set(mx, deckHeight + railH, mz);
-    top.rotation.y = angle;
-    railGroup.add(top);
-    // Средняя перекладина
-    const mid = meshFn(box(railW, railW, segLen), railMat);
-    mid.position.set(mx, deckHeight + railH * 0.5, mz);
-    mid.rotation.y = angle;
-    railGroup.add(mid);
-    threeState.railingMeshes.push(top, mid);
+    const subSegs = splitAroundPorch(cur.x, cur.z, next.x, next.z);
+    for (const seg of subSegs) {
+      drawRailSeg(seg.ax, seg.az, seg.bx, seg.bz);
+    }
   }
   parent.add(railGroup);
 }
@@ -1897,9 +1966,6 @@ function applyMaterialToScene(colorHex) {
   } else if (secId === 'fence') {
     targetMeshes = threeState.fenceMeshes || [];
     roughness = 0.80;
-  } else if (secId === 'railing') {
-    targetMeshes = threeState.railingMeshes || [];
-    roughness = 0.60;
   } else {
     // terrace, pool_terrace, pier, paths, beds, furniture → доски настила
     targetMeshes = [...(threeState.deckMeshes||[]), ...(threeState.porchMeshes||[])];
